@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<!--
+  OAD coûts techniques — vignoble champenois
+  Plan du fichier (chercher le repère avec grep -n "SECTION") :
+    SECTION STYLE      jetons de couleur (clair/sombre) et mise en page
+    SECTION PAGE       en-tête, onglets, zone principale
+    SECTION MOTEUR     script id="moteur" : calcul pur (Core) + cas de validation. Aucun accès au DOM.
+    SECTION INTERFACE  script id="interface" : rendu, édition, export. Aucune formule métier.
+  Données : data/referentiel.js (chargé avant le moteur). Tests : node --test (dossier tests/).
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OAD Coûts techniques — vignoble champenois</title>
+<!-- ================= SECTION STYLE ================= -->
+<style>
+:root{--bg:#EEF0EA;--surface:#FFFFFF;--ink:#1E2621;--muted:#5C665E;--line:#D3D8CE;--vine:#4F6B2C;--slate:#3E5C76;--ochre:#A9822A;--lie:#7A2E4A;--warn:#A4441C;--flag:#FBF1E6;--soft:#F6F7F3;color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131815;--surface:#1B211D;--ink:#E4E9E1;--muted:#9AA59B;--line:#2E3731;--vine:#93B862;--slate:#86A9C6;--ochre:#D5B25C;--lie:#CC84A2;--warn:#E48A5E;--flag:#2E2419;--soft:#171C18;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#131815;--surface:#1B211D;--ink:#E4E9E1;--muted:#9AA59B;--line:#2E3731;--vine:#93B862;--slate:#86A9C6;--ochre:#D5B25C;--lie:#CC84A2;--warn:#E48A5E;--flag:#2E2419;--soft:#171C18;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",sans-serif;font-variant-numeric:tabular-nums}
+header{background:var(--surface);border-bottom:1px solid var(--line);padding:22px clamp(16px,4vw,40px) 0}
+.top{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:end;justify-content:space-between}
+h1{font-size:1.45rem;line-height:1.2;margin:0;font-weight:650;letter-spacing:-.01em}
+h1 small{display:block;font-size:.85rem;font-weight:400;color:var(--muted);margin-top:4px;letter-spacing:0}
+.pick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
+.pick{width:min(460px,100%)}#scenSel{font-size:.95rem;width:100%}
+#kpis{display:flex;flex-wrap:wrap;gap:0;margin:20px 0 0;border-top:1px solid var(--line)}
+.kpi{padding:12px 22px 12px 0;margin-right:22px;border-right:1px solid var(--line);display:flex;flex-direction:column}
+.kpi:last-of-type{border-right:0}
+.kpi .v{font-size:1.25rem;font-weight:600}
+.kpi.main .v{font-size:2rem;color:var(--vine);line-height:1.1}
+.kpi .l{font-size:.8rem;color:var(--muted)}
+.meth{flex-basis:100%;margin:0 0 12px;font-size:.8rem;color:var(--muted)}
+nav#tabs{display:flex;gap:4px;overflow-x:auto;margin-top:6px}
+nav#tabs button{border:0;background:none;padding:10px 14px;font:inherit;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
+nav#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--vine);font-weight:600}
+main{padding:24px clamp(16px,4vw,40px) 60px;max-width:1500px}
+section{margin-bottom:32px}
+.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+h2{font-size:1.02rem;margin:0 0 10px;font-weight:650}
+.grid2>div>h2:not(:first-child){margin-top:26px}
+.note,.src{font-size:.82rem;color:var(--muted);max-width:75ch}
+.stack{display:flex;height:34px;border-radius:3px;overflow:hidden;background:var(--soft);margin:4px 0 10px}
+.c-mo{background:var(--vine)}.c-ma{background:var(--slate)}.c-in{background:var(--ochre)}.c-pr{background:var(--lie)}
+.legend{list-style:none;padding:0;margin:0 0 8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 20px}
+.legend li{display:flex;align-items:center;gap:8px;font-size:.88rem}
+.legend i{width:12px;height:12px;border-radius:2px;flex:none}
+.legend b{margin-left:auto;font-weight:600}.legend em{font-style:normal;color:var(--muted);width:3.2em;text-align:right}
+.fam{list-style:none;padding:0;margin:0}
+.fam li{display:grid;grid-template-columns:minmax(8em,14em) 1fr 6.5em;gap:10px;align-items:center;font-size:.86rem;padding:3px 0}
+.fam li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fam .bar{height:8px;background:var(--soft);border-radius:2px}.fam .bar span{display:block;height:100%;background:var(--vine);border-radius:2px}
+.fam b{text-align:right;font-weight:600}.sens .bar span{background:var(--slate)}
+.warn{padding-left:18px;margin:0;font-size:.88rem}.warn li{margin-bottom:4px;color:var(--warn)}.ok{color:var(--vine);font-size:.9rem}
+.bar-t{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:8px}.bar-t h2{margin:0}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,.btn{font:inherit;font-size:.86rem;padding:6px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:4px;cursor:pointer}
+button:hover,.btn:hover{border-color:var(--vine)}
+button.danger{color:var(--warn)}button:disabled{opacity:.4;cursor:not-allowed}
+button.x{padding:2px 8px;font-size:.78rem;color:var(--muted)}
+:focus-visible{outline:2px solid var(--vine);outline-offset:2px}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
+.scroll.tall{max-height:560px;overflow-y:auto}
+table{border-collapse:collapse;width:100%}
+.data th,.data td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;font-size:.86rem}
+.data thead th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:.78rem;color:var(--muted);white-space:nowrap;z-index:1}
+.data tfoot td{font-weight:650;background:var(--soft)}
+.data tr.flag td{background:var(--flag)}.data tr.soft td{color:var(--muted)}
+.r{text-align:right!important}.b{font-weight:650}.nw{white-space:nowrap}.long{max-width:28ch;font-size:.76rem;color:var(--muted)}
+.mini th,.mini td{font-size:.84rem;padding:4px 8px;border-bottom:1px solid var(--line);text-align:right}.mini th:first-child,.mini td:first-child{text-align:left}.mini th{color:var(--muted);font-weight:600}
+input,select{font:inherit;font-size:.86rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:4px 6px;max-width:100%}
+input.n{width:7em;text-align:right}input.xs{width:5.5em}.w6{width:6em}.w8{width:9em}.w9{width:11em}.w12{width:13em}.w14{width:17em}.w16{width:20em}
+.data select{max-width:22em}
+.form th{text-align:left;font-weight:500;padding:5px 12px 5px 0;font-size:.88rem;white-space:nowrap}.form td{padding:5px 12px 5px 0;font-size:.86rem;white-space:nowrap}.form td.src{white-space:normal}fieldset .form th{white-space:normal}
+fieldset{border:1px solid var(--line);border-radius:4px;padding:10px 14px 12px;margin:0 0 16px;background:var(--surface)}
+legend{font-weight:650;font-size:.92rem;padding:0 4px}
+.opt{display:flex;gap:10px;padding:8px;border-radius:4px;font-size:.86rem;cursor:pointer;color:var(--muted)}
+.opt b{color:var(--ink)}.opt.on{background:var(--soft)}.opt input{margin-top:3px}
+.res{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:.9rem;margin:0 0 20px}.res dt{color:var(--muted)}.res dd{margin:0;font-weight:600}
+.empty{padding:28px;border:1px dashed var(--line);border-radius:4px;color:var(--muted);text-align:center}
+.pass{color:var(--vine)}.fail{color:var(--warn)}
+small{color:var(--muted)}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:4px;font-size:.88rem;transition:.2s;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+@media (max-width:640px){.kpi{border-right:0;margin-right:0;padding-right:12px;flex:1 1 45%}.kpi.main{flex-basis:100%}.legend{grid-template-columns:1fr}.fam li{grid-template-columns:8em 1fr 5.5em}}
+@media (prefers-reduced-motion:reduce){#toast{transition:none}}
+</style>
+
+</head>
+<body>
+<!-- ================= SECTION PAGE ================= -->
+<header>
+ <div class="top">
+  <h1>Coûts techniques d'une exploitation champenoise<small>Vignes étroites, petites parcelles, vendange manuelle · coût opérationnel par hectare, hors structure</small></h1>
+  <label class="pick">Profil d'exploitation<select id="scenSel"></select></label>
+ </div>
+ <div id="kpis"></div>
+ <nav id="tabs" role="tablist"></nav>
+</header>
+<main id="main"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script src="data/referentiel.js"></script>
+<!-- ================= SECTION MOTEUR ================= -->
+<script id="moteur">
+/* ===== CORE (pur, sans DOM) ===== */
+const Core = (() => {
+  const num = v => (typeof v === 'number' && isFinite(v)) ? v : null;
+  const pmt = (r, n, pv) => { if (!n) return 0; return r ? pv * r / (1 - Math.pow(1 + r, -n)) : pv / n; };
+  function rateMO(ref, code) {
+    const m = ref.mo.find(x => x.code === code);
+    if (!m) return { rate: 0, err: `Code main-d'œuvre inconnu : ${code}` };
+    if (num(m.brut) === null) return { rate: 0, err: `Taux horaire absent pour ${code}` };
+    return { rate: m.brut * (1 + (num(m.charges) || 0)) };
+  }
+  const machFixe = (m, taux) => pmt(taux, num(m.duree) || 0, num(m.valeur) || 0) + (num(m.entretien) || 0) + (num(m.autres) || 0) + (num(m.assurance) || 0);
+  function rateMach(ref, code, heures) {
+    const m = ref.machines.find(x => x.code === code);
+    if (!m) return { rate: 0, err: `Code machine inconnu : ${code}` };
+    if (!heures) return { rate: 0, err: `${m.libelle} : 0 h d'utilisation, coût horaire non calculable` };
+    return { rate: machFixe(m, ref.params.taux) / heures + (num(m.conso) || 0) * (num(ref.params.gnr) || 0), heures, fixe: machFixe(m, ref.params.taux) };
+  }
+  function intrantPrix(ref, id) {
+    const i = ref.intrants.find(x => x.id === id);
+    if (!i) return { prix: 0, err: `Intrant introuvable : ${id}` };
+    if (num(i.prix) === null) return { prix: 0, err: `Prix manquant : ${i.composition || i.code}` };
+    return { prix: i.prix, i };
+  }
+  const kgRecoltes = (ref, opts) => (num(ref.params.volume) || 0) + (num(opts.miseReserve) || 0);
+  // heures MO et traction d'une opération (par ha et par passage)
+  function heuresOp(ref, op, opts) {
+    let h = num(op.hMO) || 0;
+    if (op.role === 'cueillette' && opts.vendange === 'productivite') h = kgRecoltes(ref, opts) / opts.kgh * opts.coefOrga;
+    return { h, hMach: op.codeMach ? h : 0 };
+  }
+  // coût d'une opération par ha et par passage, taux machine fourni
+  function coutOp(ref, op, opts, machRate) {
+    const w = [];
+    const { h, hMach } = heuresOp(ref, op, opts);
+    let mo = 0;
+    if (op.role === 'cueillette' && opts.vendange === 'tache') {
+      const kg = kgRecoltes(ref, opts);
+      mo = kg * (opts.prixKg + opts.primeTri) * (1 + opts.finContrat) * (1 + opts.cp) * (1 + opts.chargesResid) + kg * opts.fraisAnnexesKg;
+    } else if (op.codeMO && h) { const r = rateMO(ref, op.codeMO); if (r.err) w.push(r.err); mo = h * r.rate; }
+    let mach = 0;
+    if (op.codeMach && hMach) { const r = machRate(op.codeMach); if (r.err) w.push(r.err); mach = hMach * r.rate; }
+    let intr = 0;
+    if (op.intrant) { const r = intrantPrix(ref, op.intrant); if (r.err) w.push(r.err); intr = (num(op.qIntrant) || 0) * r.prix; }
+    const presta = num(op.presta) || 0;
+    return { h, hMach, mo, mach, intr, presta, total: mo + mach + intr + presta, warnings: w };
+  }
+  const surfMoy = (ref, id) => { const p = ref.profils.find(x => x.id === id); return p && p.nb ? p.surf / p.nb : null; };
+  function scenario(ref, opts, id) {
+    const surf = surfMoy(ref, id) || 1;
+    const raw = (ref.scenarios[id] || []).map((l, idx) => ({ idx, code: l.code, nb: num(l.nb) || 0, op: ref.operations.find(o => o.code === l.code) }));
+    const heuresMach = {};
+    raw.forEach(l => { if (l.op && l.op.codeMach) { const { hMach } = heuresOp(ref, l.op, opts); heuresMach[l.op.codeMach] = (heuresMach[l.op.codeMach] || 0) + hMach * l.nb * surf; } });
+    const cache = {};
+    const machRate = code => cache[code] || (cache[code] = rateMach(ref, code, opts.machine === 'scenario' ? heuresMach[code] : (ref.machines.find(m => m.code === code) || {}).heures));
+    const warnings = new Set();
+    const lines = raw.map(l => {
+      if (!l.op) { warnings.add(`Code inconnu dans le scénario : ${l.code}`); return { ...l, unknown: true, mo: 0, mach: 0, intr: 0, presta: 0, total: 0, h: 0, hMach: 0 }; }
+      const c = coutOp(ref, l.op, opts, machRate);
+      c.warnings.forEach(x => warnings.add(x));
+      const k = l.nb;
+      if (c.total * k === 0) warnings.add(`${l.op.libelle} (${l.code}) : coût nul`);
+      return { ...l, mo: c.mo * k, mach: c.mach * k, intr: c.intr * k, presta: c.presta * k, total: c.total * k, h: c.h * k, hMach: c.hMach * k };
+    });
+    const sum = f => lines.reduce((a, l) => a + l[f], 0);
+    const volume = num(ref.params.volume) || 0, prix = num(ref.params[opts.prix]) || 0;
+    const cout = sum('total');
+    const familles = {};
+    lines.forEach(l => { const f = l.op ? l.op.famille : 'Inconnu'; familles[f] = (familles[f] || 0) + l.total; });
+    if (ref.operations.some(o => o.intrant && (ref.intrants.find(i => i.id === o.intrant) || {}).composition === 'Glyphosate') && lines.some(l => l.op && l.op.intrant && (ref.intrants.find(i => i.id === l.op.intrant) || {}).composition === 'Glyphosate'))
+      warnings.add('Glyphosate : vérifier la dose en substance active, ≤ 450 g/ha/an et uniquement sous le rang en parcelle mécanisable (Anses, conditions d\'emploi depuis 2020-2021).');
+    return { id, surf, lines, heuresMach, machRates: cache, warnings: [...warnings],
+      synth: { cout, mo: sum('mo'), mach: sum('mach'), intr: sum('intr'), presta: sum('presta'), hMO: sum('h'), hMach: sum('hMach'),
+        volume, prix, produit: volume * prix, marge: volume * prix - cout, eurKg: volume ? cout / volume : null, coutExploit: cout * surf, familles } };
+  }
+  function debit(d) {
+    const rangs = Math.round(d.largeur / d.ecRang), surf = d.longueur * d.largeur / 10000;
+    const pieds = Math.round(rangs * (d.longueur / d.ecPied));
+    const tMan = pieds / d.piedsH;
+    const passages = Math.ceil(rangs / d.rangsPassage);
+    const travail = (v) => (d.longueur * passages) / (v * 1000) + passages * d.demiTour / 3600;
+    const tMach = v => travail(v) * (1 + d.arret + d.route);
+    return { rangs, surf, pieds, densite: surf ? pieds / surf : 0, tMan, hHaMan: surf ? tMan / surf : 0, passages,
+      partDemiTour: (passages * d.demiTour / 3600) / travail(d.vitesse), hHaMach: surf ? tMach(d.vitesse) / surf : 0,
+      sensib: [2, 3, 4, 5, 6, 7, 8].map(v => ({ v, hHa: surf ? tMach(v) / surf : 0 })) };
+  }
+  function controles(ref) {
+    const c = [];
+    const cnt = (arr) => arr.length;
+    const dup = arr => { const s = {}; arr.forEach(x => s[x] = (s[x] || 0) + 1); return arr.filter(x => s[x] > 1); };
+    const baseOpts = { machine: 'bareme', vendange: 'fixe' };
+    const mr = code => rateMach(ref, code, (ref.machines.find(m => m.code === code) || {}).heures);
+    const zero = ref.operations.filter(o => coutOp(ref, o, baseOpts, mr).total === 0);
+    c.push({ label: 'Opérations dont le coût est nul', n: cnt(zero), attendu: 'À vérifier : prestations ou opérations non chiffrées', detail: zero.map(o => o.code) });
+    const orph = ref.operations.filter(o => o.intrant && !ref.intrants.find(i => i.id === o.intrant));
+    c.push({ label: 'Intrants référencés mais absents du barème', n: cnt(orph), attendu: '0', detail: orph.map(o => o.code) });
+    const moVide = ref.mo.filter(m => num(m.brut) === null);
+    c.push({ label: "Codes main-d'œuvre sans taux horaire", n: cnt(moVide), attendu: 'Prestations au kg : normal si non utilisées', detail: moVide.map(m => m.code) });
+    const prixVides = ref.intrants.filter(i => num(i.prix) === null);
+    c.push({ label: 'Intrants sans prix', n: cnt(prixVides), attendu: 'À saisir avant usage économique', detail: [] });
+    const sansScen = ref.profils.filter(p => !(ref.scenarios[p.id] || []).length);
+    c.push({ label: 'Profils sans scénario défini', n: cnt(sansScen), attendu: 'Coût affiché à 0 € pour ces profils', detail: sansScen.map(p => p.id) });
+    const inconnus = []; Object.entries(ref.scenarios).forEach(([k, ls]) => ls.forEach(l => { if (!ref.operations.find(o => o.code === l.code)) inconnus.push(`${k}:${l.code}`); }));
+    c.push({ label: 'Lignes de scénario avec un code inconnu', n: cnt(inconnus), attendu: '0', detail: inconnus });
+    const dOp = [...new Set(dup(ref.operations.map(o => o.code || '')))];
+    c.push({ label: 'Codes opération en doublon ou vides', n: cnt(dOp), attendu: '0', detail: dOp });
+    const dIn = [...new Set(dup(ref.intrants.map(i => i.code)))];
+    c.push({ label: 'Codes intrants en doublon', n: cnt(dIn), attendu: 'Sans effet ici (clé interne unique), à nettoyer', detail: dIn });
+    return c;
+  }
+  return { pmt, rateMO, rateMach, machFixe, coutOp, heuresOp, scenario, debit, controles, surfMoy, kgRecoltes };
+})();
+
+/* ===== CAS DE VALIDATION — source unique, partagée par le navigateur et `npm test` =====
+ * Chaque cas fige une valeur du classeur Excel v2 (19/09/2026) ou un calcul de référence sourcé.
+ * Modifier une valeur attendue exige une entrée dans docs/decisions.md qui dit POURQUOI.
+ * Toujours exécutés sur le référentiel d'usine (data/referentiel.json), jamais sur les saisies. */
+const CasValidation = (() => {
+  const DEFAULT_OPTS = { machine: 'bareme', vendange: 'fixe', kgh: 35, coefOrga: 1.35, prixKg: 0.214, primeTri: 0, finContrat: 0.10, cp: 0.10, chargesResid: 0, fraisAnnexesKg: 0, miseReserve: 0, prix: 'prix1' };
+  const DEFAULT_DEBIT = { longueur: 24, largeur: 7, ecRang: 1.1, ecPied: 1.1, piedsH: 400, vitesse: 4, rangsPassage: 2, demiTour: 45, arret: 0.1, route: 0.1 };
+  const CAS = [
+    { id: 'T1', libelle: 'SC_2 : coût technique = 20 609,59 €/ha', origine: 'Excel v2 SCENARIOS!K3', calc: r => r.base.synth.cout, attendu: 20609.59, tol: 0.01 },
+    { id: 'T2', libelle: "SC_2 : main-d'œuvre = 701,5 h/ha (sans double comptage)", origine: 'Excel v2 SCENARIOS!K4', calc: r => r.base.synth.hMO, attendu: 701.5, tol: 1e-6 },
+    { id: 'T3', libelle: 'SC_2 : traction = 58,5 h/ha', origine: 'Excel v2 SCENARIOS!K10', calc: r => r.base.synth.hMach, attendu: 58.5, tol: 1e-6 },
+    { id: 'T4', libelle: 'Enjambeur au barème = 72,564 €/h', origine: 'Excel v2 BAREMES_MECANIQUE!M3', calc: r => r.base.machRates.ENG_ENJ.rate, attendu: 72.564, tol: 0.001 },
+    { id: 'T5', libelle: 'Heures du scénario : enjambeur 151,19 h/an', origine: 'Calcul audit 19/09/2026 (58,5 h/ha × 2,584 ha)', calc: r => r.scen.heuresMach.ENG_ENJ, attendu: 151.19, tol: 0.01 },
+    { id: 'T6', libelle: 'Heures du scénario : enjambeur 248,79 €/h', origine: 'Calcul audit 19/09/2026', calc: r => r.scen.machRates.ENG_ENJ.rate, attendu: 248.79, tol: 0.01 },
+    { id: 'T7', libelle: 'Cueillette à la tâche, 8 800 kg : 0,214 × 1,1 × 1,1 × 8 800 = 2 278,67 €/ha', origine: 'Barème SGV vendanges 2025', calc: r => r.tache.lines.find(l => l.code === 'VEN_1_NA_MIX').mo, attendu: 2278.672, tol: 0.001 },
+    { id: 'T8', libelle: 'SC_2 : 2,342 €/kg à 8 800 kg', origine: 'T1 / rendement 2026', calc: r => r.base.synth.eurKg, attendu: 20609.5946 / 8800, tol: 1e-6 },
+    { id: 'T9', libelle: 'Débit 4 km/h, parcelle 24 × 7 m : 3,964 h/ha', origine: 'Excel v2 DEBIT_CHANTIER!B31', calc: r => r.debit.hHaMach, attendu: 3.9642857, tol: 1e-6 },
+  ];
+  function executer(Core, ref) {
+    const r = { base: Core.scenario(ref, DEFAULT_OPTS, 'SC_2'), scen: Core.scenario(ref, { ...DEFAULT_OPTS, machine: 'scenario' }, 'SC_2'),
+      tache: Core.scenario(ref, { ...DEFAULT_OPTS, vendange: 'tache' }, 'SC_2'), debit: Core.debit(DEFAULT_DEBIT) };
+    return CAS.map(c => { let v; try { v = c.calc(r); } catch (e) { v = NaN; } return { id: c.id, l: c.libelle, origine: c.origine, v, exp: c.attendu, ok: Math.abs(v - c.attendu) <= c.tol }; });
+  }
+  return { DEFAULT_OPTS, DEFAULT_DEBIT, CAS, executer };
+})();
+</script>
+<!-- ================= SECTION INTERFACE ================= -->
+<script id="interface">
+/* ===== UI — rendu et orchestration. Aucune formule métier ici : tout calcul passe par Core. ===== */
+if (typeof REFERENTIEL === 'undefined') { document.body.innerHTML = '<p style="padding:2rem">Données introuvables : ouvrez index.html depuis le dossier du projet (data/referentiel.js doit être à côté).</p>'; throw new Error('data/referentiel.js non chargé'); }
+const FACTORY = JSON.parse(JSON.stringify(REFERENTIEL)); // défini par data/referentiel.js (portée globale partagée entre scripts)
+const KEY = 'oad-couts-techniques-champagne';
+const DEFAULT_OPTS = CasValidation.DEFAULT_OPTS;
+const DEFAULT_DEBIT = CasValidation.DEFAULT_DEBIT;
+const clone = o => JSON.parse(JSON.stringify(o));
+let S = { ref: clone(FACTORY), opts: { ...DEFAULT_OPTS }, debit: { ...DEFAULT_DEBIT }, scen: 'SC_2', tab: 'scenario', filtre: '' };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.ref && s.ref.operations) S = { ...S, ...s, opts: { ...DEFAULT_OPTS, ...s.opts }, debit: { ...DEFAULT_DEBIT, ...s.debit } }; } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ ref: S.ref, opts: S.opts, debit: S.debit, scen: S.scen, tab: S.tab })); } catch (e) {} };
+
+const fr = (v, d = 0) => (v === null || v === undefined || !isFinite(v)) ? '–' : v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const eur = (v, d = 0) => fr(v, d) + ' €';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = s => document.querySelector(s);
+const parseNum = v => { if (v === '' || v === null) return null; const n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
+let toastT; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); };
+
+function numIn(path, v, step = 'any', w = '') { return `<input class="n ${w}" inputmode="decimal" data-path="${path}" value="${v === null || v === undefined ? '' : String(v).replace('.', ',')}">`; }
+function txtIn(path, v, w = '') { return `<input class="t ${w}" data-path="${path}" value="${esc(v)}">`; }
+function sel(path, v, options, blank) { return `<select data-path="${path}">${blank ? `<option value="">${blank}</option>` : ''}${options.map(([k, l]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`; }
+
+/* ---------- en-tête ---------- */
+function renderHead(res) {
+  const p = S.ref.profils.find(x => x.id === S.scen) || {};
+  $('#scenSel').innerHTML = S.ref.profils.map(x => `<option value="${x.id}"${x.id === S.scen ? ' selected' : ''}>${x.id} · ${esc(x.classe)} ha · ${esc(x.dep)} · ${esc(x.cert)}${(S.ref.scenarios[x.id] || []).length ? '' : ' (vide)'}</option>`).join('');
+  const s = res.synth;
+  const methode = [S.opts.machine === 'scenario' ? 'machines : heures du scénario' : 'machines : heures du barème', { fixe: 'vendange : temps fixe', productivite: 'vendange : productivité kg/h', tache: 'vendange : tâche €/kg' }[S.opts.vendange]].join(' · ');
+  $('#kpis').innerHTML = `
+    <div class="kpi main"><span class="v">${eur(s.cout)}</span><span class="l">coût technique / ha</span></div>
+    <div class="kpi"><span class="v">${fr(s.eurKg, 2)} €</span><span class="l">par kg commercialisable</span></div>
+    <div class="kpi"><span class="v">${fr(s.hMO, 0)} h</span><span class="l">main-d'œuvre / ha</span></div>
+    <div class="kpi"><span class="v">${fr(s.hMach, 1)} h</span><span class="l">traction / ha</span></div>
+    <div class="kpi"><span class="v">${eur(s.marge)}</span><span class="l">marge sur coûts opérationnels / ha</span></div>
+    <p class="meth">${esc(methode)} · ${fr(s.volume)} kg/ha à ${fr(s.prix, 2)} €/kg · surface moyenne ${fr(res.surf, 2)} ha</p>`;
+}
+
+/* ---------- onglet scénario ---------- */
+function renderScenario(res) {
+  const s = res.synth, lines = res.lines;
+  const opsOpts = S.ref.operations.map(o => [o.code, `${o.libelle} — ${o.mode}/${o.org} (${o.code})`]);
+  const comp = [['MO', "Main-d'œuvre", s.mo, 'c-mo'], ['Mach', 'Traction et matériel', s.mach, 'c-ma'], ['Intr', 'Intrants', s.intr, 'c-in'], ['Pres', 'Prestations', s.presta, 'c-pr']];
+  const fam = Object.entries(s.familles).sort((a, b) => b[1] - a[1]);
+  const maxF = Math.max(1, ...fam.map(f => f[1]));
+  const empty = !lines.length;
+  return `
+  <section class="grid2">
+   <div>
+    <h2>Composition du coût</h2>
+    <div class="stack" role="img" aria-label="Répartition du coût par poste">${comp.map(c => `<span class="${c[3]}" style="flex:${Math.max(c[2], 0)}"></span>`).join('')}</div>
+    <ul class="legend">${comp.map(c => `<li><i class="${c[3]}"></i>${c[1]}<b>${eur(c[2])}</b><em>${s.cout ? fr(100 * c[2] / s.cout, 0) : 0} %</em></li>`).join('')}</ul>
+    <h2>Par famille d'opérations</h2>
+    <ol class="fam">${fam.map(([f, v]) => `<li><span>${esc(f)}</span><span class="bar"><span style="width:${100 * v / maxF}%"></span></span><b>${eur(v)}</b></li>`).join('')}</ol>
+   </div>
+   <div>
+    <h2>Points à vérifier</h2>
+    ${res.warnings.length ? `<ul class="warn">${res.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : '<p class="ok">Aucune alerte sur ce scénario.</p>'}
+    <h2>Machines mobilisées</h2>
+    <table class="mini"><thead><tr><th>Machine</th><th>h/an scénario</th><th>h/an barème</th><th>€/h retenu</th></tr></thead><tbody>
+    ${Object.keys(res.heuresMach).map(k => { const m = S.ref.machines.find(x => x.code === k) || {}; const r = res.machRates[k] || {}; return `<tr><td>${esc(m.libelle || k)}</td><td>${fr(res.heuresMach[k], 0)}</td><td>${fr(m.heures)}</td><td>${fr(r.rate, 2)}</td></tr>`; }).join('') || '<tr><td colspan="4">Aucune</td></tr>'}
+    </tbody></table>
+    <p class="note">Coût exploitation : ${eur(s.coutExploit)} pour ${fr(res.surf, 2)} ha. Le temps de main-d'œuvre inclut le tractoriste : ne pas l'additionner au temps de traction.</p>
+   </div>
+  </section>
+  <section>
+   <div class="bar-t"><h2>Opérations du scénario ${esc(S.scen)}</h2>
+    <div class="acts">${empty ? `<button data-act="copyScen">Partir du scénario SC_2</button>` : ''}<button data-act="addLine">Ajouter une opération</button><button data-act="csv" class="dl">Exporter en CSV</button></div></div>
+   ${empty ? `<p class="empty">Ce profil n'a pas encore d'opérations. Partez du scénario SC_2 ou ajoutez les opérations une à une.</p>` : `
+   <div class="scroll"><table class="data"><thead><tr><th>Opération</th><th class="r">Passages</th><th class="r">€/ha</th><th class="r">dont MO</th><th class="r">matériel</th><th class="r">intrants</th><th class="r">presta</th><th class="r">h MO/ha</th><th class="r">h traction/ha</th><th></th></tr></thead><tbody>
+   ${lines.map(l => `<tr class="${l.unknown || !l.total ? 'flag' : ''}"><td>${sel(`scen.${l.idx}.code`, l.code, opsOpts.some(o => o[0] === l.code) ? opsOpts : [[l.code, `⚠ code inconnu : ${l.code}`], ...opsOpts])}</td><td class="r">${numIn(`scen.${l.idx}.nb`, l.nb, 1, 'xs')}</td><td class="r b">${fr(l.total)}</td><td class="r">${fr(l.mo)}</td><td class="r">${fr(l.mach)}</td><td class="r">${fr(l.intr)}</td><td class="r">${fr(l.presta)}</td><td class="r">${fr(l.h, 1)}</td><td class="r">${fr(l.hMach, 1)}</td><td><button class="x" data-act="delLine" data-i="${l.idx}" aria-label="Retirer la ligne">Retirer</button></td></tr>`).join('')}
+   </tbody><tfoot><tr><td>Total</td><td></td><td class="r b">${fr(s.cout)}</td><td class="r">${fr(s.mo)}</td><td class="r">${fr(s.mach)}</td><td class="r">${fr(s.intr)}</td><td class="r">${fr(s.presta)}</td><td class="r">${fr(s.hMO, 1)}</td><td class="r">${fr(s.hMach, 1)}</td><td></td></tr></tfoot></table></div>`}
+  </section>`;
+}
+
+/* ---------- onglet opérations ---------- */
+function renderOperations() {
+  const mr = code => Core.rateMach(S.ref, code, (S.ref.machines.find(m => m.code === code) || {}).heures);
+  const used = new Set(Object.values(S.ref.scenarios).flat().map(l => l.code));
+  const moO = S.ref.mo.map(m => [m.code, m.code]), maO = S.ref.machines.map(m => [m.code, m.code]);
+  const inO = S.ref.intrants.map(i => [i.id, `${i.composition || i.noms || i.code}${i.prix === null ? ' (prix ?)' : ''}`]);
+  const f = S.filtre.toLowerCase();
+  const rows = S.ref.operations.map((o, i) => ({ o, i })).filter(({ o }) => !f || (o.code + o.libelle + o.famille).toLowerCase().includes(f));
+  return `<section>
+  <div class="bar-t"><h2>Référentiel des opérations</h2><div class="acts"><input class="t filtre" data-act="filtre" placeholder="Filtrer (code, libellé, famille)" value="${esc(S.filtre)}"><button data-act="addOp">Nouvelle opération</button></div></div>
+  <p class="note">Valeurs par hectare et par passage. Coût matériel calculé ici au barème (heures annuelles de l'onglet Barèmes) ; en mode « heures du scénario », il varie selon le scénario. Heures de traction = heures MO si une machine est renseignée.</p>
+  <div class="scroll"><table class="data edit"><thead><tr><th>Code</th><th>Famille</th><th>Libellé</th><th>Conduite</th><th>Organisation</th><th>Code MO</th><th class="r">h MO/ha</th><th>Machine</th><th>Intrant</th><th class="r">Qté/ha</th><th class="r">Presta €/ha</th><th class="r">Total €/ha</th><th>Source / hypothèse</th><th></th></tr></thead><tbody>
+  ${rows.map(({ o, i }) => { const c = Core.coutOp(S.ref, o, S.opts, mr); return `<tr class="${c.total ? '' : 'flag'}">
+   <td>${txtIn(`op.${i}.code`, o.code, 'w9')}</td><td>${txtIn(`op.${i}.famille`, o.famille, 'w8')}</td><td>${txtIn(`op.${i}.libelle`, o.libelle, 'w14')}</td>
+   <td>${sel(`op.${i}.mode`, o.mode, [['VE', 'VE'], ['VSL', 'VSL'], ['NA', 'NA']])}</td><td>${sel(`op.${i}.org`, o.org, [['Exploitation', 'Exploitation'], ['Prestataire', 'Prestataire'], ['Mixte', 'Mixte']])}</td>
+   <td>${sel(`op.${i}.codeMO`, o.codeMO || '', moO, '—')}</td><td class="r">${numIn(`op.${i}.hMO`, o.hMO, 'any', 'xs')}</td><td>${sel(`op.${i}.codeMach`, o.codeMach || '', maO, '—')}</td>
+   <td>${sel(`op.${i}.intrant`, o.intrant || '', inO, '—')}</td><td class="r">${numIn(`op.${i}.qIntrant`, o.qIntrant, 'any', 'xs')}</td><td class="r">${numIn(`op.${i}.presta`, o.presta, 'any', 'xs')}</td>
+   <td class="r b">${fr(c.total)}</td><td>${txtIn(`op.${i}.source`, o.source, 'w12')}</td>
+   <td class="nw"><button class="x" data-act="dupOp" data-i="${i}">Dupliquer</button> <button class="x" data-act="delOp" data-i="${i}" ${used.has(o.code) ? 'disabled title="Utilisée dans un scénario : retirez-la d\'abord du scénario"' : ''}>Supprimer</button></td></tr>`; }).join('')}
+  </tbody></table></div></section>`;
+}
+
+/* ---------- onglet barèmes ---------- */
+function renderBaremes() {
+  const f = S.filtre.toLowerCase();
+  const ins = S.ref.intrants.map((x, i) => ({ x, i })).filter(({ x }) => !f || [x.code, x.type, x.composition, x.noms].join(' ').toLowerCase().includes(f));
+  return `<section><h2>Main-d'œuvre</h2>
+  <p class="note">Coût horaire = salaire brut × (1 + charges). Les charges agrègent aujourd'hui cotisations, congés payés et indemnités : décomposition à arbitrer.</p>
+  <div class="scroll"><table class="data edit"><thead><tr><th>Code</th><th>Libellé</th><th class="r">Brut €/h</th><th class="r">Charges (ex. 0,5)</th><th class="r">€/kg</th><th class="r">Coût €/h</th><th>Remarque</th></tr></thead><tbody>
+  ${S.ref.mo.map((m, i) => { const r = Core.rateMO(S.ref, m.code); return `<tr><td>${esc(m.code)}</td><td>${txtIn(`mo.${i}.libelle`, m.libelle, 'w12')}</td><td class="r">${numIn(`mo.${i}.brut`, m.brut, 'any', 'xs')}</td><td class="r">${numIn(`mo.${i}.charges`, m.charges, 'any', 'xs')}</td><td class="r">${numIn(`mo.${i}.eurKg`, m.eurKg, 'any', 'xs')}</td><td class="r b">${r.err ? '–' : fr(r.rate, 2)}</td><td>${txtIn(`mo.${i}.remarque`, m.remarque, 'w16')}</td></tr>`; }).join('')}
+  </tbody></table></div></section>
+  <section><h2>Matériel</h2>
+  <p class="note">Coût horaire au barème = (annuité au taux d'intérêt + entretien + autres frais + assurance) ÷ heures annuelles + consommation × prix du GNR.</p>
+  <div class="scroll"><table class="data edit"><thead><tr><th>Code</th><th>Machine</th><th class="r">Valeur €</th><th class="r">Durée ans</th><th class="r">h/an</th><th class="r">Entretien €/an</th><th class="r">L/h</th><th class="r">Autres €/an</th><th class="r">Assurance €/an</th><th class="r">€/h barème</th><th>Source</th></tr></thead><tbody>
+  ${S.ref.machines.map((m, i) => { const r = Core.rateMach(S.ref, m.code, m.heures); return `<tr><td>${esc(m.code)}</td><td>${txtIn(`ma.${i}.libelle`, m.libelle, 'w12')}</td>${['valeur', 'duree', 'heures', 'entretien', 'conso', 'autres', 'assurance'].map(k => `<td class="r">${numIn(`ma.${i}.${k}`, m[k], 'any', 'xs')}</td>`).join('')}<td class="r b">${r.err ? '–' : fr(r.rate, 2)}</td><td>${txtIn(`ma.${i}.source`, m.source, 'w16')}</td></tr>`; }).join('')}
+  </tbody></table></div></section>
+  <section><div class="bar-t"><h2>Intrants</h2><input class="t filtre" data-act="filtre" placeholder="Filtrer (substance, produit, type)" value="${esc(S.filtre)}"></div>
+  <p class="note">${S.ref.intrants.filter(x => x.prix === null).length} intrants sans prix. Le prix doit correspondre à l'unité de la quantité saisie dans l'opération.</p>
+  <div class="scroll tall"><table class="data edit"><thead><tr><th>Code</th><th>Type</th><th>Composition</th><th>Produits commerciaux</th><th class="r">Prix</th><th>Unité</th></tr></thead><tbody>
+  ${ins.map(({ x, i }) => `<tr class="${x.prix === null ? 'soft' : ''}"><td>${esc(x.code)}</td><td>${esc(x.type)}</td><td>${esc(x.composition)}</td><td class="long">${esc(x.noms)}</td><td class="r">${numIn(`in.${i}.prix`, x.prix, 'any', 'xs')}</td><td>${txtIn(`in.${i}.unite`, x.unite, 'w6')}</td></tr>`).join('')}
+  </tbody></table></div></section>`;
+}
+
+/* ---------- onglet paramètres & méthodes ---------- */
+function radio(name, v, cur, label, desc) { return `<label class="opt ${v === cur ? 'on' : ''}"><input type="radio" name="${name}" value="${v}" data-path="opts.${name}"${v === cur ? ' checked' : ''}><span><b>${label}</b><br>${desc}</span></label>`; }
+function renderParams() {
+  const P = S.ref.params, O = S.opts;
+  const kg = Core.kgRecoltes(S.ref, O);
+  return `<section class="grid2"><div>
+   <h2>Paramètres de campagne</h2>
+   <table class="form"><tbody>
+    <tr><th>Rendement commercialisable</th><td>${numIn('p.volume', P.volume)} kg/ha</td><td class="src">8 800 kg/ha pour 2026 (Comité Champagne, 22/07/2026)</td></tr>
+    <tr><th>Mise en réserve récoltée</th><td>${numIn('opts.miseReserve', O.miseReserve)} kg/ha</td><td class="src">Au-delà du rendement, jusqu'au butoir de 15 500 kg/ha, dans la limite du plafond de réserve de 10 000 kg/ha. Sert aux modes de vendange indexés.</td></tr>
+    <tr><th>Prix du raisin, scénario 1</th><td>${numIn('p.prix1', P.prix1)} €/kg</td><td class="src">Valeur de travail. Cerfrance cité par la presse : 7,35 €/kg en 2024 (source secondaire).</td></tr>
+    <tr><th>Prix du raisin, scénario 2</th><td>${numIn('p.prix2', P.prix2)} €/kg</td><td></td></tr>
+    <tr><th>Prix retenu</th><td colspan="2">${sel('opts.prix', O.prix, [['prix1', 'Scénario 1'], ['prix2', 'Scénario 2']])}</td></tr>
+    <tr><th>Taux d'intérêt (annuités)</th><td>${numIn('p.taux', P.taux)}</td><td class="src">0,03 = 3 %</td></tr>
+    <tr><th>Prix du GNR</th><td>${numIn('p.gnr', P.gnr)} €/L</td><td class="src">Saisir un prix HT facture. Repère de détail mi-septembre 2026 : ~1,97 €/L en Champagne-Ardenne (statut HT/TTC non précisé, marché volatil).</td></tr>
+   </tbody></table>
+  </div><div>
+   <h2>Méthodes de calcul</h2>
+   <p class="note">Ces choix de méthode sont ouverts. La valeur par défaut reproduit le classeur Excel v2 ; les variantes restent visibles pour arbitrage.</p>
+   <fieldset><legend>Coût horaire du matériel</legend>
+    ${radio('machine', 'bareme', O.machine, 'Heures annuelles du barème', "Reproduit le classeur. Sous-estime le coût quand l'exploitation utilise peu la machine.")}
+    ${radio('machine', 'scenario', O.machine, 'Heures calculées depuis le scénario', "Heures = h/ha × passages × surface moyenne du profil. Révèle le coût réel d'un matériel détenu sur petite surface.")}
+   </fieldset>
+   <fieldset><legend>Cueillette (opération VEN_1)</legend>
+    ${radio('vendange', 'fixe', O.vendange, 'Temps fixe par hectare', "Reproduit le classeur : h/ha saisi dans l'opération, indépendant du rendement.")}
+    ${radio('vendange', 'productivite', O.vendange, 'Productivité kg/h', `Temps = kg récoltés ÷ kg/h × coefficient d'organisation. Ici : ${fr(kg)} kg → ${fr(kg / O.kgh * O.coefOrga, 0)} h/ha.`)}
+    ${radio('vendange', 'tache', O.vendange, 'Tâche au kilo', 'Coût = kg récoltés × (prix du kilo + prime de tri) × indemnités × charges résiduelles + frais annexes au kilo.')}
+    <table class="form"><tbody>
+     <tr><th>Productivité</th><td>${numIn('opts.kgh', O.kgh, 'any', 'xs')} kg/h</td><th>Coefficient d'organisation</th><td>${numIn('opts.coefOrga', O.coefOrga, 'any', 'xs')}</td></tr>
+     <tr><th>Prix du kilo brut</th><td>${numIn('opts.prixKg', O.prixKg, 'any', 'xs')} €/kg</td><th>Prime qualitative de tri</th><td>${numIn('opts.primeTri', O.primeTri, 'any', 'xs')} €/kg</td></tr>
+     <tr><th>Indemnité fin de contrat</th><td>${numIn('opts.finContrat', O.finContrat, 'any', 'xs')}</td><th>Indemnité congés payés</th><td>${numIn('opts.cp', O.cp, 'any', 'xs')}</td></tr>
+     <tr><th>Charges patronales résiduelles</th><td>${numIn('opts.chargesResid', O.chargesResid, 'any', 'xs')}</td><th>Logement, repas, transport</th><td>${numIn('opts.fraisAnnexesKg', O.fraisAnnexesKg, 'any', 'xs')} €/kg</td></tr>
+    </tbody></table>
+    <p class="src">Barème SGV vendanges 2025 : 0,214 €/kg brut (rendement de 7 000 à 10 000 kg/ha, vignes non effeuillées, avec débardage), plus 10 % d'indemnité de fin de contrat et 10 % de congés payés, vendangeur non nourri non logé. Charges résiduelles sous TO-DE et frais annexes : à confirmer (MSA, SGV).</p>
+   </fieldset>
+  </div></section>
+  <section><h2>Référentiel</h2>
+   <p class="note">Version ${esc(S.ref.version)} · ${esc(S.ref.source)}. Les modifications sont enregistrées dans ce navigateur.</p>
+   <div class="acts"><button data-act="json" class="dl">Exporter le référentiel (JSON)</button><label class="btn">Importer un référentiel<input type="file" accept=".json,application/json" data-act="import" hidden></label><button data-act="reset" class="danger">Revenir aux valeurs d'origine</button></div>
+  </section>`;
+}
+
+/* ---------- onglet débit ---------- */
+function renderDebit() {
+  const d = S.debit, r = Core.debit(d);
+  const max = Math.max(...r.sensib.map(x => x.hHa));
+  const f = (k, l, u) => `<tr><th>${l}</th><td>${numIn('debit.' + k, d[k])} ${u}</td></tr>`;
+  return `<section class="grid2"><div>
+   <h2>Parcelle et chantier</h2>
+   <table class="form"><tbody>
+    ${f('longueur', 'Longueur des rangs', 'm')}${f('largeur', 'Largeur de la parcelle', 'm')}${f('ecRang', 'Écartement entre rangs', 'm')}${f('ecPied', 'Écartement entre pieds', 'm')}
+    ${f('piedsH', 'Rendement manuel', 'pieds/h')}${f('vitesse', "Vitesse d'avancement", 'km/h')}${f('rangsPassage', 'Rangs travaillés par passage', '')}${f('demiTour', 'Demi-tour par passage', 's')}${f('arret', "Temps d'arrêt (part du travail)", '')}${f('route', 'Temps de route (part du travail)', '')}
+   </tbody></table>
+  </div><div>
+   <h2>Résultats ramenés à l'hectare</h2>
+   <dl class="res"><dt>Surface</dt><dd>${fr(r.surf, 4)} ha · ${r.rangs} rangs · ${r.pieds} pieds</dd><dt>Densité</dt><dd>${fr(r.densite)} pieds/ha</dd>
+   <dt>Chantier manuel</dt><dd>${fr(r.hHaMan, 1)} h/ha</dd><dt>Chantier mécanisé</dt><dd>${fr(r.hHaMach, 2)} h/ha · ${r.passages} passages</dd>
+   <dt>Part des demi-tours</dt><dd>${fr(100 * r.partDemiTour, 0)} % du temps de travail</dd></dl>
+   <h2>Sensibilité à la vitesse</h2>
+   <ol class="fam sens">${r.sensib.map(x => `<li><span>${x.v} km/h</span><span class="bar"><span style="width:${100 * x.hHa / max}%"></span></span><b>${fr(x.hHa, 2)} h/ha</b></li>`).join('')}</ol>
+   <p class="note">Sur rangs courts, le temps de demi-tour domine : augmenter la vitesse gagne peu. Ce simulateur n'est pas encore relié aux h/ha des opérations.</p>
+  </div></section>`;
+}
+
+/* ---------- onglet contrôles & tests ---------- */
+const runTests = () => CasValidation.executer(Core, clone(FACTORY));
+function renderControles() {
+  const c = Core.controles(S.ref), t = runTests(), okN = t.filter(x => x.ok).length;
+  return `<section class="grid2"><div><h2>Cohérence du référentiel en cours</h2>
+   <table class="data"><thead><tr><th>Contrôle</th><th class="r">Résultat</th><th>Lecture</th></tr></thead><tbody>
+   ${c.map(x => `<tr class="${x.n && x.attendu === '0' ? 'flag' : ''}"><td>${esc(x.label)}${x.detail.length && x.detail.length <= 15 ? `<br><small>${esc(x.detail.join(', '))}</small>` : ''}</td><td class="r b">${x.n}</td><td>${esc(x.attendu)}</td></tr>`).join('')}
+   </tbody></table></div>
+   <div><h2>Tests de validation <span class="${okN === t.length ? 'pass' : 'fail'}">${okN}/${t.length}</span></h2>
+   <p class="note">Exécutés sur les valeurs d'origine, indépendamment de vos modifications.</p>
+   <table class="data"><tbody>${t.map(x => `<tr class="${x.ok ? '' : 'flag'}"><td>${x.id}</td><td>${esc(x.l)}</td><td class="r">${fr(x.v, 3)}</td><td>${x.ok ? 'OK' : 'Écart'}</td></tr>`).join('')}</tbody></table>
+  </div></section>`;
+}
+
+/* ---------- rendu ---------- */
+const TABS = [['scenario', 'Scénario'], ['operations', 'Opérations'], ['baremes', 'Barèmes'], ['params', 'Paramètres et méthodes'], ['debit', 'Débit de chantier'], ['controles', 'Contrôles et tests']];
+function render() {
+  const res = Core.scenario(S.ref, S.opts, S.scen);
+  renderHead(res);
+  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" aria-selected="${k === S.tab}" data-tab="${k}">${l}</button>`).join('');
+  const fn = { scenario: () => renderScenario(res), operations: renderOperations, baremes: renderBaremes, params: renderParams, debit: renderDebit, controles: renderControles }[S.tab];
+  $('#main').innerHTML = fn();
+  if (!dl) document.querySelectorAll('.dl').forEach(b => b.hidden = !fallbackDl);
+}
+
+/* ---------- édition ---------- */
+function setPath(path, raw) {
+  const [k, a, b] = path.split('.');
+  const N = ['hMO', 'qIntrant', 'presta', 'nb', 'brut', 'charges', 'eurKg', 'prix', 'valeur', 'duree', 'heures', 'entretien', 'conso', 'autres', 'assurance'];
+  const val = f => N.includes(f) ? parseNum(raw) : (raw === '' ? null : raw);
+  if (k === 'p') S.ref.params[a] = parseNum(raw);
+  else if (k === 'opts') S.opts[a] = ['machine', 'vendange', 'prix'].includes(a) ? raw : (parseNum(raw) ?? 0);
+  else if (k === 'debit') { const v = parseNum(raw); if (v !== null && v >= 0) S.debit[a] = v; }
+  else if (k === 'scen') { S.ref.scenarios[S.scen][+a][b] = b === 'nb' ? (parseNum(raw) ?? 0) : raw; }
+  else if (k === 'op') {
+    const op = S.ref.operations[+a];
+    if (b === 'code') {
+      const nv = String(raw).trim(); if (!nv) { toast('Le code ne peut pas être vide.'); return; }
+      if (S.ref.operations.some((o, i) => i !== +a && o.code === nv)) { toast(`Le code ${nv} existe déjà.`); return; }
+      Object.values(S.ref.scenarios).forEach(ls => ls.forEach(l => { if (l.code === op.code) l.code = nv; }));
+      op.code = nv; toast('Code renommé, scénarios mis à jour.');
+    } else op[b] = val(b);
+  }
+  else if (k === 'mo') S.ref.mo[+a][b] = val(b);
+  else if (k === 'ma') S.ref.machines[+a][b] = val(b);
+  else if (k === 'in') S.ref.intrants[+a][b] = val(b);
+  save(); render();
+}
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (t.id === 'scenSel') { S.scen = t.value; save(); render(); return; }
+  if (t.dataset.act === 'import') { importJson(t.files[0]); return; }
+  if (t.dataset.act === 'filtre') { S.filtre = t.value; render(); return; }
+  if (t.dataset.path) setPath(t.dataset.path, t.value);
+});
+document.addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; S.filtre = ''; save(); render(); return; }
+  const a = b.dataset.act, i = +b.dataset.i;
+  if (a === 'addLine') { (S.ref.scenarios[S.scen] = S.ref.scenarios[S.scen] || []).push({ code: S.ref.operations[0].code, nb: 1 }); }
+  else if (a === 'delLine') S.ref.scenarios[S.scen].splice(i, 1);
+  else if (a === 'copyScen') S.ref.scenarios[S.scen] = clone(S.ref.scenarios.SC_2 || []);
+  else if (a === 'addOp') { let n = 1; while (S.ref.operations.some(o => o.code === `NOUV_${n}`)) n++; S.ref.operations.unshift({ code: `NOUV_${n}`, famille: '', libelle: 'Nouvelle opération', mode: 'VE', org: 'Exploitation', codeMO: '', hMO: null, codeMach: '', intrant: '', qIntrant: null, presta: null, source: '' }); S.filtre = ''; }
+  else if (a === 'dupOp') { const c = clone(S.ref.operations[i]); let n = 2; while (S.ref.operations.some(o => o.code === `${c.code}_${n}`)) n++; c.code = `${c.code}_${n}`; delete c.role; S.ref.operations.splice(i + 1, 0, c); }
+  else if (a === 'delOp') S.ref.operations.splice(i, 1);
+  else if (a === 'reset') { if (b.dataset.armed) { S.ref = clone(FACTORY); S.opts = { ...DEFAULT_OPTS }; S.debit = { ...DEFAULT_DEBIT }; toast("Valeurs d'origine restaurées."); } else { b.dataset.armed = 1; b.textContent = 'Confirmer : tout effacer'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Revenir aux valeurs d'origine"; } }, 4000); return; } }
+  else if (a === 'csv') return exportCsv();
+  else if (a === 'json') return saveFile(`referentiel_couts_champagne_${S.ref.version}.json`, JSON.stringify(S.ref, null, 1));
+  else return;
+  save(); render();
+});
+document.addEventListener('input', e => { if (e.target.dataset.act === 'filtre') { clearTimeout(window._ft); window._ft = setTimeout(() => { S.filtre = e.target.value; const pos = e.target.selectionStart; render(); const f = document.querySelector('.filtre'); if (f) { f.focus(); f.setSelectionRange(pos, pos); } }, 250); } });
+
+/* ---------- fichiers ---------- */
+let dl = null, fallbackDl = !(window.claude && window.claude.use);
+if (window.claude && window.claude.use) window.claude.use('downloads').then(x => { dl = x; document.querySelectorAll('.dl').forEach(b => b.hidden = !dl); }).catch(() => {});
+async function saveFile(name, data) {
+  if (dl) { try { await dl.save({ filename: name, data }); toast('Fichier enregistré.'); } catch (e) { if (e && e.code !== 'declined') toast('Enregistrement impossible ici.'); } return; }
+  if (fallbackDl) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+}
+function exportCsv() {
+  const res = Core.scenario(S.ref, S.opts, S.scen), n = v => fr(v, 2).replace(/\u202f|\u00a0/g, '');
+  const rows = [['Scénario', 'Code', 'Opération', 'Passages', '€/ha', 'MO €/ha', 'Matériel €/ha', 'Intrants €/ha', 'Prestations €/ha', 'h MO/ha', 'h traction/ha']];
+  res.lines.forEach(l => rows.push([S.scen, l.code, l.op ? l.op.libelle : 'code inconnu', l.nb, n(l.total), n(l.mo), n(l.mach), n(l.intr), n(l.presta), n(l.h), n(l.hMach)]));
+  const s = res.synth; rows.push([S.scen, 'TOTAL', '', '', n(s.cout), n(s.mo), n(s.mach), n(s.intr), n(s.presta), n(s.hMO), n(s.hMach)]);
+  rows.push([], ['Méthode matériel', S.opts.machine], ['Méthode cueillette', S.opts.vendange], ['Rendement kg/ha', S.ref.params.volume], ['Référentiel', S.ref.version]);
+  saveFile(`couts_${S.scen}.csv`, '\ufeff' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n'));
+}
+function importJson(file) {
+  if (!file) return;
+  const r = new FileReader();
+  r.onload = () => { try { const j = JSON.parse(r.result); if (!Array.isArray(j.operations) || !Array.isArray(j.mo) || !Array.isArray(j.machines) || !Array.isArray(j.intrants) || !j.params || !j.scenarios) throw 0; S.ref = j; save(); render(); toast('Référentiel importé.'); } catch (e) { toast("Fichier non reconnu : il manque des sections du référentiel."); } };
+  r.readAsText(file);
+}
+render();
+</script>
+</body>
+</html>

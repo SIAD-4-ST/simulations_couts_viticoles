@@ -1,0 +1,30 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --test:*)",
+      "Bash(node .claude/outils/ref.js:*)",
+      "Bash(node .claude/outils/fichier-unique.js)",
+      "Bash(git status)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "ask": ["Bash(git push:*)"],
+    "deny": [
+      "Read(./index-autonome.html)",
+      "Read(./data/archive/**)",
+      "Bash(rm -rf:*)",
+      "Bash(npm install:*)",
+      "Bash(curl:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [{ "type": "command", "command": "node .claude/hooks/apres-edition.js", "timeout": 60 }]
+      }
+    ]
+  }
+}
