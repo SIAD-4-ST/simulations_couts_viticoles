@@ -75,16 +75,17 @@ tests/
 
 ## 3. Utiliser l'outil
 
-**En-tête.** Il contient :
-- le choix du profil d'exploitation : 36 profils, croisant classe de surface, département et certification ;
-- la synthèse : coût par ha, coût par kg commercialisable, heures de main-d'œuvre et de traction par ha, marge sur coûts opérationnels ;
-- un rappel de la méthode active.
+**En-tête.** Collant en haut de page, il contient :
+- le choix du profil d'exploitation : 36 profils, croisant classe de surface, département et certification, avec la surface moyenne, le nombre d'exploitations et la certification ;
+- le bandeau de synthèse : coût par ha, coût par kg commercialisable, heures de main-d'œuvre et de traction par ha, marge sur coûts opérationnels. Dès que la méthode active s'écarte de celle du classeur, une puce donne l'écart en euros ;
+- la ligne « méthode active » : deux pastilles cliquables (matériel, vendange) qui basculent la variante et recalculent toute la page ;
+- les onglets, avec le nombre d'opérations et le score des cas de validation.
 
 | Onglet | Contenu |
 |---|---|
-| **Scénario** | Composition du coût par poste et par famille d'opérations, alertes, matériel mobilisé (heures du scénario comparées à celles du barème). Liste des opérations du profil : on peut changer une opération, modifier le nombre de passages, ajouter ou retirer une ligne, exporter en CSV. Un profil vide peut partir de SC_2. |
-| **Opérations** | Référentiel des 58 opérations, modifiable : code, famille, libellé, conduite, organisation, main-d'œuvre, h/ha, machine, intrant, quantité, prestation, source. Les valeurs s'entendent par hectare et par passage. |
-| **Barèmes** | Main-d'œuvre (brut et charges), matériel (valeur, durée, heures, entretien, consommation, assurance), intrants (prix et unité, avec filtre). |
+| **Scénario** | Composition du coût par poste et par famille d'opérations, points à vérifier classés par niveau (réglementaire, donnée, méthode, périmètre), matériel mobilisé (heures du scénario comparées à celles du barème), comparateur des trois variantes de méthode. Liste des opérations du profil : on peut changer une opération, modifier le nombre de passages, ajouter ou retirer une ligne, afficher la source de chaque ligne, exporter en CSV, imprimer la fiche. Un profil vide peut partir de SC_2. |
+| **Opérations** | Référentiel des 58 opérations, modifiable : code, famille, libellé, conduite, organisation, main-d'œuvre, h/ha, machine, intrant, quantité, prestation, source. Filtre texte, facettes par famille et bascule « sans source ». Les valeurs s'entendent par hectare et par passage. |
+| **Barèmes** | Main-d'œuvre en cartes (brut, charges, coût horaire), matériel (valeur, durée, heures, entretien, consommation, assurance), intrants (prix et unité, avec filtre et bascule « sans prix » ; au-delà de 60 lignes, l'affichage est déplié à la demande). |
 | **Paramètres et méthodes** | Rendement, mise en réserve, prix du raisin, taux d'intérêt, GNR. Choix des méthodes (section 5). Export et import du référentiel en JSON, retour aux valeurs d'origine. |
 | **Débit de chantier** | Temps manuel et mécanisé par hectare selon la géométrie de la parcelle, et sensibilité à la vitesse. |
 | **Contrôles et tests** | Cohérence du référentiel en cours d'édition, et exécution des 9 cas de validation sur les valeurs d'origine. |
@@ -276,6 +277,15 @@ Hypothèse retenue dans l'attente de l'arbitrage A5 : `data/referentiel.js` fait
 
 ### D4 — Structure simplifiée (19/09/2026)
 Application dans `index.html`, données dans `data/`, tests qui exécutent directement le bloc moteur de la page, outillage dans `.claude/`. Ce que ça écarte : l'étape de construction et le découpage en plusieurs fichiers sources.
+
+### D5 — Refonte de l'interface, moteur et données inchangés (21/09/2026)
+Contexte : l'interface d'origine était lisible mais peu hiérarchisée, et la tâche prioritaire (maintenir le référentiel, tracer les sources) n'était pas soutenue.
+Choix : refonte des seuls blocs `SECTION STYLE` et `SECTION INTERFACE` d'`index.html`, d'après le paquet de design « Refonte OAD » (prototype HTML de référence). Le bloc `SECTION MOTEUR` est repris à l'octet près et `data/referentiel.js` n'est pas touché.
+Conséquence chiffrée : aucune. T1–T9 restent verts et les valeurs affichées sont identiques (SC_2 : 20 609,59 €/ha, 701,5 h, 58,5 h, 2,34 €/kg ; variantes 30 918,64 et 17 898,67 €/ha).
+Apports : en-tête collant avec bandeau KPI et écart vs classeur, pastilles de méthode cliquables, alertes classées par niveau (règle d'affichage, pas de logique métier), comparateur des trois variantes, sources affichables ligne à ligne, facettes par famille, filtres « sans source » et « sans prix », 6 jetons CSS ajoutés (`--line-soft`, `--field`, `--on-accent`, `--vine-strong`, `--dim`, `--flag-soft`) et 9 jetons de famille `--fam-1…--fam-9`, feuille `@media print` pour « Imprimer la fiche ».
+Ce que ça écarte : intégrer le prototype tel quel (React, polices Google, couleurs en dur), qui aurait rompu les règles du dépôt.
+Écarts assumés par rapport au texte du paquet de design, les valeurs réelles faisant foi : densité du débit de chantier 7 798 pieds/ha (et non 34 483) ; trois premières familles 56 % (et non 57 %) ; 15 lignes de SC_2 sans source (et non 12) ; une seule machine mobilisée par SC_2, l'enjambeur (et non trois). La variante de cueillette « productivité kg/h », absente du prototype, est conservée : aucune variante existante n'est retirée sans arbitrage.
+Tests : aucun changement attendu ; `node --test` reste à 31/31.
 
 ### Mises à jour de valeurs
 | Date | Élément | Avant → après | Source |

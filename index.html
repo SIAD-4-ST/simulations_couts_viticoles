@@ -2,8 +2,8 @@
 <!--
   OAD coûts techniques — vignoble champenois
   Plan du fichier (chercher le repère avec grep -n "SECTION") :
-    SECTION STYLE      jetons de couleur (clair/sombre) et mise en page
-    SECTION PAGE       en-tête, onglets, zone principale
+    SECTION STYLE      jetons de couleur (clair/sombre), typographie et mise en page
+    SECTION PAGE       en-tête collant (titre, profil, KPI, méthode, onglets), zone principale
     SECTION MOTEUR     script id="moteur" : calcul pur (Core) + cas de validation. Aucun accès au DOM.
     SECTION INTERFACE  script id="interface" : rendu, édition, export. Aucune formule métier.
   Données : data/referentiel.js (chargé avant le moteur). Tests : node --test (dossier tests/).
@@ -15,92 +15,309 @@
 <title>OAD Coûts techniques — vignoble champenois</title>
 <!-- ================= SECTION STYLE ================= -->
 <style>
-:root{--bg:#EEF0EA;--surface:#FFFFFF;--ink:#1E2621;--muted:#5C665E;--line:#D3D8CE;--vine:#4F6B2C;--slate:#3E5C76;--ochre:#A9822A;--lie:#7A2E4A;--warn:#A4441C;--flag:#FBF1E6;--soft:#F6F7F3;color-scheme:light}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#131815;--surface:#1B211D;--ink:#E4E9E1;--muted:#9AA59B;--line:#2E3731;--vine:#93B862;--slate:#86A9C6;--ochre:#D5B25C;--lie:#CC84A2;--warn:#E48A5E;--flag:#2E2419;--soft:#171C18;color-scheme:dark}}
-:root[data-theme="dark"]{--bg:#131815;--surface:#1B211D;--ink:#E4E9E1;--muted:#9AA59B;--line:#2E3731;--vine:#93B862;--slate:#86A9C6;--ochre:#D5B25C;--lie:#CC84A2;--warn:#E48A5E;--flag:#2E2419;--soft:#171C18;color-scheme:dark}
+:root{
+--bg:#EEF0EA;--surface:#FFFFFF;--ink:#1E2621;--muted:#5C665E;--line:#D3D8CE;--soft:#F6F7F3;
+--vine:#4F6B2C;--slate:#3E5C76;--ochre:#A9822A;--lie:#7A2E4A;--warn:#A4441C;--flag:#FBF1E6;
+--line-soft:#F0F2EC;--field:#E3E7DF;--on-accent:#F3F6EC;--vine-strong:#3A4F20;--dim:#B4BDB4;--flag-soft:#FCFBF7;
+--fam-1:#4F6B2C;--fam-2:#3E5C76;--fam-3:#A9822A;--fam-4:#7A2E4A;--fam-5:#6B7F4A;--fam-6:#5A7D96;--fam-7:#8C6A2E;--fam-8:#96566D;--fam-9:#7E9455;
+--serif:ui-serif,Georgia,"Times New Roman",serif;
+--sans:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
+--mono:ui-monospace,"SFMono-Regular",Consolas,"Liberation Mono",monospace;
+color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+--bg:#131815;--surface:#1B211D;--ink:#E4E9E1;--muted:#9AA59B;--line:#2E3731;--soft:#171C18;
+--vine:#93B862;--slate:#86A9C6;--ochre:#D5B25C;--lie:#CC84A2;--warn:#E48A5E;--flag:#2E2419;
+--line-soft:#232B26;--field:#2A322C;--on-accent:#202A1C;--vine-strong:#A8C97A;--dim:#5A655C;--flag-soft:#20261F;
+--fam-1:#93B862;--fam-2:#86A9C6;--fam-3:#D5B25C;--fam-4:#CC84A2;--fam-5:#A9C67F;--fam-6:#9BBBD3;--fam-7:#C7A76A;--fam-8:#BF8FA4;--fam-9:#B5CC93;
+color-scheme:dark}}
+:root[data-theme="dark"]{
+--bg:#131815;--surface:#1B211D;--ink:#E4E9E1;--muted:#9AA59B;--line:#2E3731;--soft:#171C18;
+--vine:#93B862;--slate:#86A9C6;--ochre:#D5B25C;--lie:#CC84A2;--warn:#E48A5E;--flag:#2E2419;
+--line-soft:#232B26;--field:#2A322C;--on-accent:#202A1C;--vine-strong:#A8C97A;--dim:#5A655C;--flag-soft:#20261F;
+--fam-1:#93B862;--fam-2:#86A9C6;--fam-3:#D5B25C;--fam-4:#CC84A2;--fam-5:#A9C67F;--fam-6:#9BBBD3;--fam-7:#C7A76A;--fam-8:#BF8FA4;--fam-9:#B5CC93;
+color-scheme:dark}
+
 *{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,-apple-system,Roboto,"Helvetica Neue",sans-serif;font-variant-numeric:tabular-nums}
-header{background:var(--surface);border-bottom:1px solid var(--line);padding:22px clamp(16px,4vw,40px) 0}
-.top{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:end;justify-content:space-between}
-h1{font-size:1.45rem;line-height:1.2;margin:0;font-weight:650;letter-spacing:-.01em}
-h1 small{display:block;font-size:.85rem;font-weight:400;color:var(--muted);margin-top:4px;letter-spacing:0}
-.pick{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted)}
-.pick{width:min(460px,100%)}#scenSel{font-size:.95rem;width:100%}
-#kpis{display:flex;flex-wrap:wrap;gap:0;margin:20px 0 0;border-top:1px solid var(--line)}
-.kpi{padding:12px 22px 12px 0;margin-right:22px;border-right:1px solid var(--line);display:flex;flex-direction:column}
-.kpi:last-of-type{border-right:0}
-.kpi .v{font-size:1.25rem;font-weight:600}
-.kpi.main .v{font-size:2rem;color:var(--vine);line-height:1.1}
-.kpi .l{font-size:.8rem;color:var(--muted)}
-.meth{flex-basis:100%;margin:0 0 12px;font-size:.8rem;color:var(--muted)}
-nav#tabs{display:flex;gap:4px;overflow-x:auto;margin-top:6px}
-nav#tabs button{border:0;background:none;padding:10px 14px;font:inherit;color:var(--muted);border-bottom:3px solid transparent;cursor:pointer;white-space:nowrap}
-nav#tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--vine);font-weight:600}
-main{padding:24px clamp(16px,4vw,40px) 60px;max-width:1500px}
-section{margin-bottom:32px}
-.grid2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
-@media (max-width:900px){.grid2{grid-template-columns:1fr}}
-h2{font-size:1.02rem;margin:0 0 10px;font-weight:650}
-.grid2>div>h2:not(:first-child){margin-top:26px}
-.note,.src{font-size:.82rem;color:var(--muted);max-width:75ch}
-.stack{display:flex;height:34px;border-radius:3px;overflow:hidden;background:var(--soft);margin:4px 0 10px}
+body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.55 var(--sans);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+h1,h2{font-family:var(--serif);font-weight:500;margin:0}
+h1{font-size:26px;line-height:1.15;letter-spacing:-.01em}
+h2{font-size:18px}
+.wrap{max-width:1560px;margin:0 auto;padding-left:clamp(16px,3vw,36px);padding-right:clamp(16px,3vw,36px)}
+
+/* ---- en-tête ---- */
+header{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);box-shadow:0 1px 0 rgba(30,38,33,.03)}
+header .wrap{padding-top:18px}
+.top{display:flex;flex-wrap:wrap;gap:20px 40px;align-items:flex-start;justify-content:space-between}
+.title{min-width:min(100%,340px)}
+.eyebrow{display:flex;align-items:center;gap:10px;margin:0 0 6px;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.eyebrow i{width:10px;height:10px;border-radius:2px;background:var(--vine);flex:none}
+.sub{margin:6px 0 0;font-size:13px;color:var(--muted);max-width:62ch}
+.pick{display:flex;flex-direction:column;gap:8px;min-width:min(100%,420px);flex:1 1 380px}
+.pick-t{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.pick-t label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.pick-t span{font-size:12px;color:var(--muted)}
+#prof{width:100%;font-size:14px;padding:9px 12px;border-radius:6px;border-color:var(--line)}
+.faits{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--muted)}
+.faits b{color:var(--ink);font-family:var(--mono);font-weight:600}
+.faits b.t{font-family:var(--sans)}
+
+#kpis{display:grid;grid-template-columns:minmax(260px,1.15fr) repeat(4,minmax(120px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin-top:20px}
+.kpi{background:var(--surface);padding:16px 18px}
+.kpi .v{display:block;font-family:var(--mono);font-size:20px;font-weight:500}
+.kpi .l{display:block;font-size:12px;color:var(--muted);margin-top:6px}
+.kpi.main{background:var(--soft);padding:16px 20px}
+.kpi.main .v{display:inline;font-family:var(--serif);font-size:40px;line-height:1;color:var(--vine)}
+.kpi.main .u{font-size:13px;color:var(--muted);margin-left:8px}
+.kpi.marge .v{color:var(--slate)}
+.badge{margin-top:8px;display:inline-flex;align-items:center;gap:6px;background:var(--flag);border:1px solid var(--line);color:var(--warn);font-size:12px;padding:3px 8px;border-radius:999px}
+.badge b{font-family:var(--mono);font-weight:600}
+.badge span{color:var(--muted)}
+
+.meth{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:center;margin-top:14px}
+.meth .t{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font:inherit;font-size:12.5px;padding:5px 11px;border-radius:999px;border:1px solid var(--line);background:var(--soft);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.chip:hover{border-color:var(--vine)}
+.chip .g{color:var(--muted)}
+.chip b{font-weight:600}
+.ctx{font-size:12px;color:var(--muted);font-family:var(--mono)}
+
+nav#tabs{display:flex;gap:2px;overflow-x:auto;margin-top:14px}
+nav#tabs button{border:0;background:none;font:inherit;font-size:13.5px;padding:11px 14px;color:var(--muted);border-bottom:2px solid transparent;border-radius:0;cursor:pointer;white-space:nowrap}
+nav#tabs button:hover{color:var(--ink);border-bottom-color:var(--line)}
+nav#tabs button[aria-selected="true"]{color:var(--ink);font-weight:600;border-bottom-color:var(--vine)}
+nav#tabs .n{margin-left:7px;font-size:11px;font-family:var(--mono);color:var(--muted)}
+main{padding-top:24px;padding-bottom:72px}
+
+/* ---- cartes et grilles ---- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px 22px}
+.card.p0{padding:0;overflow:hidden}
+.card-h{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.card-h p{margin:4px 0 0;font-size:12px;color:var(--muted)}
+.card-f{padding:14px 20px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 24px}
+.card-f b{color:var(--ink);font-family:var(--mono);font-weight:600}
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.g-scen{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:20px;align-items:start}
+.g-debit{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.col{display:flex;flex-direction:column;gap:20px}
+.hd{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px}
+.hd .m,.note{font-size:12px;color:var(--muted)}
+.note{margin:0 0 12px;max-width:74ch}
+.mt{margin-top:20px}
+.mt2{margin:26px 0 4px}
+
+/* ---- composition ---- */
+.stack{display:flex;height:40px;border-radius:5px;overflow:hidden;background:var(--soft)}
+.stack span{display:flex;align-items:center;justify-content:center;color:var(--surface);font-size:11.5px;font-weight:600;letter-spacing:.02em;overflow:hidden}
 .c-mo{background:var(--vine)}.c-ma{background:var(--slate)}.c-in{background:var(--ochre)}.c-pr{background:var(--lie)}
-.legend{list-style:none;padding:0;margin:0 0 8px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 20px}
-.legend li{display:flex;align-items:center;gap:8px;font-size:.88rem}
-.legend i{width:12px;height:12px;border-radius:2px;flex:none}
-.legend b{margin-left:auto;font-weight:600}.legend em{font-style:normal;color:var(--muted);width:3.2em;text-align:right}
-.fam{list-style:none;padding:0;margin:0}
-.fam li{display:grid;grid-template-columns:minmax(8em,14em) 1fr 6.5em;gap:10px;align-items:center;font-size:.86rem;padding:3px 0}
-.fam li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.fam .bar{height:8px;background:var(--soft);border-radius:2px}.fam .bar span{display:block;height:100%;background:var(--vine);border-radius:2px}
-.fam b{text-align:right;font-weight:600}.sens .bar span{background:var(--slate)}
-.warn{padding-left:18px;margin:0;font-size:.88rem}.warn li{margin-bottom:4px;color:var(--warn)}.ok{color:var(--vine);font-size:.9rem}
-.bar-t{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:8px}.bar-t h2{margin:0}
-.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-button,.btn{font:inherit;font-size:.86rem;padding:6px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:4px;cursor:pointer}
+.legend{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:4px 24px;margin:14px 0 0;list-style:none;padding:0}
+.legend li{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+.legend i{width:10px;height:10px;border-radius:2px;flex:none}
+.legend b{margin-left:auto;font-family:var(--mono);font-size:13px;font-weight:600}
+.legend em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--muted);width:3.4em;text-align:right}
+.fam{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:7px}
+.fam li{display:grid;grid-template-columns:minmax(7em,13em) minmax(0,1fr) 6.2em 3.4em;gap:12px;align-items:center;font-size:13px}
+.fam li>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.fam b{text-align:right;font-family:var(--mono);font-weight:600}
+.fam em{font-style:normal;text-align:right;font-family:var(--mono);color:var(--muted);font-size:12px}
+.bar{height:9px;background:var(--line-soft);border-radius:2px;overflow:hidden}
+.bar span{display:block;height:100%;border-radius:2px;background:var(--vine)}
+
+/* ---- petite table de carte ---- */
+.mini th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0 0 7px}
+.mini th.r,.mini td.r{text-align:right}
+.mini td{font-size:13px;padding:7px 0;border-top:1px solid var(--line-soft)}
+.mini td.r{font-family:var(--mono);color:var(--muted)}
+.mini td.r.b{color:var(--ink);font-weight:600}
+.acc{color:var(--slate)}
+
+/* ---- alertes ---- */
+.alert-h{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--line);background:var(--flag)}
+.alert-h .n{font-family:var(--mono);font-size:12px;font-weight:600;color:var(--warn);border:1px solid var(--line);border-radius:4px;padding:1px 6px}
+.alerts{list-style:none;margin:0;padding:6px 0}
+.alerts li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:11px 20px;border-bottom:1px solid var(--line-soft);align-items:start}
+.alerts li:last-child{border-bottom:0}
+.lvl{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid currentColor;border-radius:3px;padding:2px 6px;white-space:nowrap;margin-top:1px}
+.lvl.reg{color:var(--warn)}.lvl.don{color:var(--ochre)}.lvl.met{color:var(--slate)}.lvl.per{color:var(--muted)}
+.alerts .tx{font-size:13px;line-height:1.5}
+.alerts .or{font-size:12px;color:var(--muted);margin-top:3px}
+
+/* ---- boutons et champs ---- */
+button,.btn{font:inherit;font-size:12.5px;padding:7px 12px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;cursor:pointer}
 button:hover,.btn:hover{border-color:var(--vine)}
-button.danger{color:var(--warn)}button:disabled{opacity:.4;cursor:not-allowed}
-button.x{padding:2px 8px;font-size:.78rem;color:var(--muted)}
+button.pri{background:var(--vine);border-color:var(--vine);color:var(--surface)}
+button.pri:hover{background:var(--vine-strong);border-color:var(--vine-strong)}
+button.on{border-color:var(--vine);background:var(--on-accent)}
+button.danger{color:var(--warn)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.x{padding:3px 7px;font-size:11.5px;color:var(--muted);border-color:transparent;background:none;border-radius:4px}
+button.x:hover{border-color:var(--line);color:var(--warn)}
 :focus-visible{outline:2px solid var(--vine);outline-offset:2px}
-.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px;background:var(--surface)}
-.scroll.tall{max-height:560px;overflow-y:auto}
+.acts{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+input,select{font:inherit;font-size:13px;color:var(--ink);background:var(--surface);border:1px solid var(--field);border-radius:6px;padding:5px 8px;max-width:100%}
+input:hover,select:hover,input:focus,select:focus{border-color:var(--vine)}
+input.n{font-family:var(--mono);text-align:right;width:5.4em;padding:4px 7px;border-radius:5px}
+input.xs{width:3.8em}
+.w6{width:6em}.w8{width:9em}.w9{width:11em}.w12{width:13em}.w14{width:17em}.w16{width:20em}
+.filtre{width:16em}.filtre.lg{width:18em}
+.sl{border-color:transparent;background:none;padding:3px 5px}
+.sl:hover,.sl:focus{border-color:var(--vine)}
+
+/* ---- tables ---- */
+.scroll{overflow-x:auto}
+.scroll.tall{overflow-y:auto;max-height:70vh}
+.scroll.mid{overflow-y:auto;max-height:60vh}
 table{border-collapse:collapse;width:100%}
-.data th,.data td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;font-size:.86rem}
-.data thead th{position:sticky;top:0;background:var(--soft);font-weight:600;font-size:.78rem;color:var(--muted);white-space:nowrap;z-index:1}
-.data tfoot td{font-weight:650;background:var(--soft)}
-.data tr.flag td{background:var(--flag)}.data tr.soft td{color:var(--muted)}
-.r{text-align:right!important}.b{font-weight:650}.nw{white-space:nowrap}.long{max-width:28ch;font-size:.76rem;color:var(--muted)}
-.mini th,.mini td{font-size:.84rem;padding:4px 8px;border-bottom:1px solid var(--line);text-align:right}.mini th:first-child,.mini td:first-child{text-align:left}.mini th{color:var(--muted);font-weight:600}
-input,select{font:inherit;font-size:.86rem;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:3px;padding:4px 6px;max-width:100%}
-input.n{width:7em;text-align:right}input.xs{width:5.5em}.w6{width:6em}.w8{width:9em}.w9{width:11em}.w12{width:13em}.w14{width:17em}.w16{width:20em}
-.data select{max-width:22em}
-.form th{text-align:left;font-weight:500;padding:5px 12px 5px 0;font-size:.88rem;white-space:nowrap}.form td{padding:5px 12px 5px 0;font-size:.86rem;white-space:nowrap}.form td.src{white-space:normal}fieldset .form th{white-space:normal}
-fieldset{border:1px solid var(--line);border-radius:4px;padding:10px 14px 12px;margin:0 0 16px;background:var(--surface)}
-legend{font-weight:650;font-size:.92rem;padding:0 4px}
-.opt{display:flex;gap:10px;padding:8px;border-radius:4px;font-size:.86rem;cursor:pointer;color:var(--muted)}
-.opt b{color:var(--ink)}.opt.on{background:var(--soft)}.opt input{margin-top:3px}
-.res{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;font-size:.9rem;margin:0 0 20px}.res dt{color:var(--muted)}.res dd{margin:0;font-weight:600}
-.empty{padding:28px;border:1px dashed var(--line);border-radius:4px;color:var(--muted);text-align:center}
-.pass{color:var(--vine)}.fail{color:var(--warn)}
-small{color:var(--muted)}
-#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:4px;font-size:.88rem;transition:.2s;pointer-events:none}
+.data th{text-align:left;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);padding:10px 12px;background:var(--soft);border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0;z-index:1}
+.data td{padding:8px 12px;border-bottom:1px solid var(--line-soft);font-size:13px;vertical-align:middle}
+.data .r{text-align:right}
+.data td.r{font-family:var(--mono);font-size:13px}
+.data .b{font-weight:600;font-size:13.5px}
+.data tr.flag td{background:var(--flag)}
+.data tr.soft td{background:var(--flag-soft)}
+.data tfoot td{background:var(--soft);border-top:1px solid var(--line);border-bottom:0;font-weight:600;padding:12px}
+.data.wide{min-width:1040px}
+.data.wider{min-width:1340px}
+.data.w980{min-width:980px}
+.data.w820{min-width:820px}
+.z{color:var(--dim)}.mut{color:var(--muted)}.ko{color:var(--warn)}.ok{color:var(--vine)}.mid-c{color:var(--ochre)}
+.mono{font-family:var(--mono)}
+.nw{white-space:nowrap}
+.long{max-width:30ch;font-size:11.5px;color:var(--muted)}
+.long.lg{max-width:34ch}
+.cut{max-width:16ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pas{width:8px;height:8px;border-radius:2px;display:inline-block;flex:none}
+.famc{display:inline-flex;align-items:center;gap:7px}
+.opc{display:flex;align-items:center;gap:9px}
+.opc .f{width:4px;height:22px;border-radius:2px;flex:none}
+.op-sel{font-size:13.5px;font-weight:500;max-width:24em}
+.meta{display:block;font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:2px}
+.srcl{font-size:11.5px;color:var(--muted);margin:5px 0 0 13px;max-width:52ch}
+.srcl.no{color:var(--warn)}
+.facettes{display:flex;flex-wrap:wrap;gap:6px;padding:12px 20px;border-bottom:1px solid var(--line);background:var(--soft)}
+.fac{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+.fac.on{background:var(--vine);border-color:var(--vine);color:var(--surface)}
+.fac .n{color:var(--muted);margin-left:6px;font-family:var(--mono)}
+.fac.on .n{color:var(--surface)}
+
+/* ---- barèmes : main-d'œuvre ---- */
+.mogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:16px}
+.mo{border:1px solid var(--field);border-radius:8px;padding:13px 15px}
+.mo.presta{background:var(--flag-soft)}
+.mo-t{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.mo-t .c{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.mo .rate{font-family:var(--mono);font-size:19px;font-weight:600;color:var(--vine)}
+.mo.presta .rate{color:var(--ochre)}
+.mo .u{font-size:12px;color:var(--muted)}
+.mo .d{font-size:12px;color:var(--muted);margin-top:8px;font-family:var(--mono);display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.mo .rq{font-size:12px;color:var(--muted);margin-top:6px}
+.mo-t input{flex:1 1 auto;min-width:0;font-size:13.5px;font-weight:600}
+.mo .rq input{width:100%;font-size:12px;color:var(--muted)}
+.famc input{min-width:0}
+.cut select{max-width:16ch}
+
+/* ---- lignes libellé / valeur ---- */
+.rows{display:flex;flex-direction:column;gap:2px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.row .l{font-size:13.5px;font-weight:500}
+.row .s{font-size:12px;color:var(--muted);margin-top:3px;max-width:52ch}
+.row .v{display:flex;align-items:baseline;gap:7px}
+.row .u{font-size:12px;color:var(--muted);width:4.5em}
+.row.fld{align-items:center;padding:8px 0}
+.row.fld .l{font-size:13px;font-weight:400}
+.row.fld .u{width:4.2em}
+
+/* ---- méthodes et comparateur ---- */
+.meths{display:flex;flex-direction:column;gap:10px}
+.mth{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:13px 15px;border:1px solid var(--field);border-radius:8px;text-align:left;background:var(--surface);cursor:pointer;width:100%}
+.mth.on{border-color:var(--vine);background:var(--on-accent)}
+.mth .dot{width:14px;height:14px;border-radius:50%;border:1px solid var(--field);margin-top:3px}
+.mth.on .dot{border-color:var(--vine);background:var(--vine)}
+.mth .t{display:block;font-size:13.5px;font-weight:600}
+.mth .d{display:block;font-size:12.5px;color:var(--muted);margin-top:4px;line-height:1.5}
+.mth .k{display:block;font-family:var(--mono);font-size:12px;color:var(--slate);margin-top:6px}
+.cmps{display:flex;flex-direction:column;gap:8px}
+.cmp{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;padding:11px 14px;border:1px solid var(--field);border-radius:8px;background:var(--surface);text-align:left;cursor:pointer;width:100%}
+.cmp.on{border-color:var(--vine);background:var(--on-accent)}
+.cmp .t{display:block;font-size:13px;font-weight:600}
+.cmp .d{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.cmp .c{display:block;font-family:var(--mono);font-size:15px;font-weight:600;text-align:right}
+.cmp .e{display:block;font-family:var(--mono);font-size:12px;margin-top:2px;text-align:right}
+.up{color:var(--warn)}.down{color:var(--vine)}.ref{color:var(--muted)}
+
+/* ---- débit de chantier ---- */
+.res{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--field);border:1px solid var(--field);border-radius:8px;overflow:hidden}
+.res>div{background:var(--surface);padding:14px 16px}
+.res .v{font-family:var(--mono);font-size:18px;font-weight:600}
+.res .l{font-size:12px;color:var(--muted);margin-top:5px}
+.sens{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+.sens li{display:grid;grid-template-columns:4.5em minmax(0,1fr) 5.6em;gap:12px;align-items:center;font-size:13px}
+.sens .v{font-family:var(--mono);color:var(--muted)}
+.sens li.cur .v{color:var(--ink);font-weight:600}
+.sens .bar{height:10px}
+.sens .bar span{background:var(--dim)}
+.sens li.cur .bar span{background:var(--slate)}
+.sens b{text-align:right;font-family:var(--mono);font-weight:600}
+
+/* ---- contrôles et tests ---- */
+.ctl{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:start;padding:11px 0;border-bottom:1px solid var(--line-soft)}
+.ctl .n{font-family:var(--mono);font-size:16px;font-weight:600}
+.ctl .l{font-size:13.5px}
+.ctl .s{font-size:12px;color:var(--muted);margin-top:3px}
+.tst{display:grid;grid-template-columns:2.6em minmax(0,1fr) auto;gap:12px;align-items:start;padding:10px 0;border-bottom:1px solid var(--line-soft)}
+.tst .id{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.tst .l{font-size:13px}
+.tst .o{font-size:11.5px;color:var(--muted);margin-top:3px}
+.tst .vd{font-family:var(--mono);font-size:12px;font-weight:600}
+.score{font-family:var(--mono);font-size:13px;font-weight:600}
+
+.empty{padding:28px;border:1px dashed var(--line);border-radius:8px;color:var(--muted);text-align:center}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);opacity:0;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:6px;font-size:12.5px;transition:.2s;pointer-events:none;z-index:40}
 #toast.on{opacity:1;transform:translate(-50%,0)}
-@media (max-width:640px){.kpi{border-right:0;margin-right:0;padding-right:12px;flex:1 1 45%}.kpi.main{flex-basis:100%}.legend{grid-template-columns:1fr}.fam li{grid-template-columns:8em 1fr 5.5em}}
+
+@media (max-width:1100px){.g2,.g-scen,.g-debit{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+#kpis{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+.kpi.main{grid-column:1/-1}
+.legend{grid-template-columns:minmax(0,1fr)}
+.fam li{grid-template-columns:7em minmax(0,1fr) 5.4em 3em;gap:8px}
+.mogrid{grid-template-columns:minmax(0,1fr)}
+}
 @media (prefers-reduced-motion:reduce){#toast{transition:none}}
+@media print{
+header{position:static;box-shadow:none}
+nav#tabs,.meth,.acts,.facettes,button{display:none!important}
+body{background:var(--surface)}
+.card{break-inside:avoid}
+.scroll,.scroll.tall,.scroll.mid{overflow:visible!important;max-height:none!important}
+.data.wide,.data.wider,.data.w980,.data.w820{min-width:0}
+.data th{position:static}
+}
 </style>
 
 </head>
 <body>
 <!-- ================= SECTION PAGE ================= -->
 <header>
- <div class="top">
-  <h1>Coûts techniques d'une exploitation champenoise<small>Vignes étroites, petites parcelles, vendange manuelle · coût opérationnel par hectare, hors structure</small></h1>
-  <label class="pick">Profil d'exploitation<select id="scenSel"></select></label>
+ <div class="wrap">
+  <div class="top">
+   <div class="title">
+    <p class="eyebrow"><i></i>Outil d'aide à la décision · Champagne</p>
+    <h1>Coûts techniques d'une exploitation champenoise</h1>
+    <p class="sub">Vignes étroites, petites parcelles, vendange manuelle. Coût opérationnel par hectare, hors charges de structure.</p>
+   </div>
+   <div class="pick">
+    <div class="pick-t"><label for="prof">Profil d'exploitation</label><span id="nprof"></span></div>
+    <select id="prof"></select>
+    <div class="faits" id="faits"></div>
+   </div>
+  </div>
+  <div id="kpis"></div>
+  <div class="meth" id="meth"></div>
+  <nav id="tabs" role="tablist"></nav>
  </div>
- <div id="kpis"></div>
- <nav id="tabs" role="tablist"></nav>
 </header>
-<main id="main"></main>
+<main id="main" class="wrap"></main>
 <div id="toast" role="status" aria-live="polite"></div>
 <script src="data/referentiel.js"></script>
 <!-- ================= SECTION MOTEUR ================= -->
@@ -252,71 +469,154 @@ const KEY = 'oad-couts-techniques-champagne';
 const DEFAULT_OPTS = CasValidation.DEFAULT_OPTS;
 const DEFAULT_DEBIT = CasValidation.DEFAULT_DEBIT;
 const clone = o => JSON.parse(JSON.stringify(o));
-let S = { ref: clone(FACTORY), opts: { ...DEFAULT_OPTS }, debit: { ...DEFAULT_DEBIT }, scen: 'SC_2', tab: 'scenario', filtre: '' };
-try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.ref && s.ref.operations) S = { ...S, ...s, opts: { ...DEFAULT_OPTS, ...s.opts }, debit: { ...DEFAULT_DEBIT, ...s.debit } }; } catch (e) {}
+/* Filtres et bascules d'affichage : jamais persistés (voir save()). */
+const VOLATILE = { filtre: '', filtreIntr: '', famille: '', sansSource: false, sansPrix: false, sources: false, intrTout: false };
+let S = { ref: clone(FACTORY), opts: { ...DEFAULT_OPTS }, debit: { ...DEFAULT_DEBIT }, scen: 'SC_2', tab: 'scenario', ...VOLATILE };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.ref && s.ref.operations) S = { ...S, ...s, opts: { ...DEFAULT_OPTS, ...s.opts }, debit: { ...DEFAULT_DEBIT, ...s.debit }, ...VOLATILE }; } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ ref: S.ref, opts: S.opts, debit: S.debit, scen: S.scen, tab: S.tab })); } catch (e) {} };
 
+/* ---------- format et fabriques de champs ---------- */
 const fr = (v, d = 0) => (v === null || v === undefined || !isFinite(v)) ? '–' : v.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
 const eur = (v, d = 0) => fr(v, d) + ' €';
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = s => document.querySelector(s);
 const parseNum = v => { if (v === '' || v === null) return null; const n = Number(String(v).replace(/\s/g, '').replace(',', '.')); return isFinite(n) ? n : null; };
+const part = (v, t) => (t ? fr(100 * v / t, 0) : '0') + ' %';
+const signe = d => (d > 0 ? '+' : '−') + eur(Math.abs(d));
+const sens = d => d > 0 ? 'up' : (d < 0 ? 'down' : 'ref');
+/* Couleur de famille : 9 jetons --fam-1…--fam-9, affectation stable par hachage du nom. */
+const famTok = nom => { let h = 0; const n = String(nom || ''); for (let i = 0; i < n.length; i++) h = (h * 31 + n.charCodeAt(i)) % 9973; return 'var(--fam-' + (h % 9 + 1) + ')'; };
 let toastT; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); };
 
-function numIn(path, v, step = 'any', w = '') { return `<input class="n ${w}" inputmode="decimal" data-path="${path}" value="${v === null || v === undefined ? '' : String(v).replace('.', ',')}">`; }
+function numIn(path, v, w = '') { return `<input class="n ${w}" inputmode="decimal" data-path="${path}" value="${v === null || v === undefined ? '' : String(v).replace('.', ',')}">`; }
 function txtIn(path, v, w = '') { return `<input class="t ${w}" data-path="${path}" value="${esc(v)}">`; }
-function sel(path, v, options, blank) { return `<select data-path="${path}">${blank ? `<option value="">${blank}</option>` : ''}${options.map(([k, l]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`; }
+function sel(path, v, options, blank, cls) { return `<select class="${cls || ''}" data-path="${path}">${blank ? `<option value="">${esc(blank)}</option>` : ''}${options.map(([k, l]) => `<option value="${esc(k)}"${k === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`; }
+
+/* Les trois variantes de méthode, calculées sur le même scénario (arbitrages A1 et A2 ouverts). */
+function variantes() {
+  const o = S.opts;
+  return {
+    base: Core.scenario(S.ref, { ...o, machine: 'bareme', vendange: 'fixe' }, S.scen),
+    mach: Core.scenario(S.ref, { ...o, machine: 'scenario', vendange: 'fixe' }, S.scen),
+    tache: Core.scenario(S.ref, { ...o, machine: 'bareme', vendange: 'tache' }, S.scen),
+    prod: Core.scenario(S.ref, { ...o, machine: 'bareme', vendange: 'productivite' }, S.scen)
+  };
+}
+const ligneCueillette = r => r.lines.find(l => l.op && l.op.role === 'cueillette');
 
 /* ---------- en-tête ---------- */
-function renderHead(res) {
-  const p = S.ref.profils.find(x => x.id === S.scen) || {};
-  $('#scenSel').innerHTML = S.ref.profils.map(x => `<option value="${x.id}"${x.id === S.scen ? ' selected' : ''}>${x.id} · ${esc(x.classe)} ha · ${esc(x.dep)} · ${esc(x.cert)}${(S.ref.scenarios[x.id] || []).length ? '' : ' (vide)'}</option>`).join('');
-  const s = res.synth;
-  const methode = [S.opts.machine === 'scenario' ? 'machines : heures du scénario' : 'machines : heures du barème', { fixe: 'vendange : temps fixe', productivite: 'vendange : productivité kg/h', tache: 'vendange : tâche €/kg' }[S.opts.vendange]].join(' · ');
+const L_MACH = { bareme: 'heures du barème', scenario: 'heures du scénario' };
+const L_VEND = { fixe: 'temps fixe', productivite: 'productivité kg/h', tache: 'tâche €/kg' };
+function renderHead(res, V) {
+  const P = S.ref.profils, p = P.find(x => x.id === S.scen) || {};
+  $('#prof').innerHTML = P.map(x => `<option value="${esc(x.id)}"${x.id === S.scen ? ' selected' : ''}>${esc(x.id)} · ${esc(x.classe)} ha · ${esc(x.dep)} · ${esc(x.cert)}${(S.ref.scenarios[x.id] || []).length ? '' : ' (vide)'}</option>`).join('');
+  const nOk = P.filter(x => (S.ref.scenarios[x.id] || []).length).length;
+  $('#nprof').textContent = `${fr(nOk)} profil${nOk > 1 ? 's' : ''} sur ${fr(P.length)} renseigné${nOk > 1 ? 's' : ''}`;
+  $('#faits').innerHTML = `<span>Surface moyenne <b>${fr(res.surf, 2)} ha</b></span><span>Exploitations <b>${fr(p.nb)}</b></span><span>Certification <b class="t">${esc(p.cert || '–')}</b></span>`;
+  const s = res.synth, vide = !res.lines.length, d = s.cout - V.base.synth.cout;
   $('#kpis').innerHTML = `
-    <div class="kpi main"><span class="v">${eur(s.cout)}</span><span class="l">coût technique / ha</span></div>
-    <div class="kpi"><span class="v">${fr(s.eurKg, 2)} €</span><span class="l">par kg commercialisable</span></div>
-    <div class="kpi"><span class="v">${fr(s.hMO, 0)} h</span><span class="l">main-d'œuvre / ha</span></div>
-    <div class="kpi"><span class="v">${fr(s.hMach, 1)} h</span><span class="l">traction / ha</span></div>
-    <div class="kpi"><span class="v">${eur(s.marge)}</span><span class="l">marge sur coûts opérationnels / ha</span></div>
-    <p class="meth">${esc(methode)} · ${fr(s.volume)} kg/ha à ${fr(s.prix, 2)} €/kg · surface moyenne ${fr(res.surf, 2)} ha</p>`;
+   <div class="kpi main"><div><span class="v">${eur(vide ? 0 : s.cout)}</span><span class="u">/ ha</span></div><span class="l">Coût technique opérationnel</span>${Math.abs(d) > 1 ? `<div class="badge"><b>${signe(d)}</b><span>vs méthode du classeur</span></div>` : ''}</div>
+   <div class="kpi"><span class="v">${vide ? '–' : fr(s.eurKg, 2)}</span><span class="l">€ / kg commercialisable</span></div>
+   <div class="kpi"><span class="v">${vide ? '–' : fr(s.hMO, 0)}</span><span class="l">h main-d'œuvre / ha</span></div>
+   <div class="kpi"><span class="v">${vide ? '–' : fr(s.hMach, 1)}</span><span class="l">h traction / ha</span></div>
+   <div class="kpi marge"><span class="v">${vide ? '–' : eur(s.marge)}</span><span class="l">marge sur coûts opér. / ha</span></div>`;
+  $('#meth').innerHTML = `<span class="t">Méthode active</span>
+   <div class="chips">
+    <button class="chip" data-act="chip" data-k="machine" title="Basculer le mode de calcul du coût horaire du matériel"><span class="g">Matériel</span><b>${L_MACH[S.opts.machine]}</b></button>
+    <button class="chip" data-act="chip" data-k="vendange" title="Basculer la méthode de cueillette"><span class="g">Vendange</span><b>${L_VEND[S.opts.vendange]}</b></button>
+   </div>
+   <span class="ctx">${fr(s.volume)} kg/ha à ${fr(s.prix, 2)} €/kg · surface moyenne ${fr(res.surf, 2)} ha</span>`;
+}
+
+/* ---------- alertes typées (règle d'affichage : le moteur ne connaît pas les niveaux) ---------- */
+function alertes(res) {
+  const A = [], w = res.warnings;
+  w.filter(x => /Glyphosate/.test(x)).forEach(x => A.push(['reg', 'réglementaire', x, "Anses, conditions d'emploi depuis 2020-2021"]));
+  const sp = S.ref.intrants.filter(i => i.prix === null).length;
+  if (sp) A.push(['don', 'donnée', `${fr(sp)} intrants sur ${fr(S.ref.intrants.length)} n'ont pas de prix : les opérations concernées sortent sous-évaluées.`, 'Onglet Barèmes → Intrants']);
+  w.filter(x => !/Glyphosate/.test(x) && /coût nul|Prix manquant|Taux horaire absent|inconnu|introuvable/.test(x))
+   .forEach(x => A.push(['don', 'donnée', x, 'Valeur à compléter dans le référentiel']));
+  w.filter(x => /0 h d'utilisation/.test(x)).forEach(x => A.push(['met', 'méthode', x, 'Arbitrage A1 · coût horaire du matériel']));
+  const pr = res.lines.filter(l => l.op && l.presta > 0 && !l.mo && !l.intr).sort((a, b) => b.presta - a.presta)[0];
+  if (pr) A.push(['met', 'méthode', `${pr.op.famille} comptée en prestation (${fr(pr.nb)} passages × ${eur(pr.presta / (pr.nb || 1))}), sans le coût des produits.`, 'Arbitrage A2 · données Comité Champagne à obtenir']);
+  A.push(['per', 'périmètre', "Coût technique hors charges de structure, fermage, amortissement des plantations et rémunération de l'exploitant.", 'Le résultat se lit comme une marge sur coûts opérationnels']);
+  return A;
 }
 
 /* ---------- onglet scénario ---------- */
-function renderScenario(res) {
-  const s = res.synth, lines = res.lines;
-  const opsOpts = S.ref.operations.map(o => [o.code, `${o.libelle} — ${o.mode}/${o.org} (${o.code})`]);
-  const comp = [['MO', "Main-d'œuvre", s.mo, 'c-mo'], ['Mach', 'Traction et matériel', s.mach, 'c-ma'], ['Intr', 'Intrants', s.intr, 'c-in'], ['Pres', 'Prestations', s.presta, 'c-pr']];
-  const fam = Object.entries(s.familles).sort((a, b) => b[1] - a[1]);
+function renderScenario(res, V) {
+  const s = res.synth, empty = !res.lines.length;
+  const lignes = [...res.lines].sort((a, b) => b.total - a.total);
+  const opsOpts = S.ref.operations.map(o => [o.code, `${o.libelle} (${o.code})`]);
+  const comp = [["Main-d'œuvre", 'MO', s.mo, 'c-mo'], ['Traction et matériel', 'Matériel', s.mach, 'c-ma'], ['Intrants', 'Intrants', s.intr, 'c-in'], ['Prestations', 'Presta', s.presta, 'c-pr']];
+  const fam = Object.entries(s.familles).sort((x, y) => y[1] - x[1]);
   const maxF = Math.max(1, ...fam.map(f => f[1]));
-  const empty = !lines.length;
+  const tete3 = fam.slice(0, 3).reduce((a, f) => a + f[1], 0);
+  const al = alertes(res);
+  const cb = V.base.synth.cout;
+  const cmp = [
+    ['bareme', 'Heures du barème · temps de vendange fixe', 'Reproduit le classeur Excel v2', cb, S.opts.machine === 'bareme' && S.opts.vendange === 'fixe'],
+    ['scenario', 'Heures réellement mobilisées', 'Matériel détenu sur petite surface (A1)', V.mach.synth.cout, S.opts.machine === 'scenario'],
+    ['tache', 'Cueillette à la tâche', `Barème SGV vendanges 2025, ${fr(S.opts.prixKg, 3)} €/kg (A2)`, V.tache.synth.cout, S.opts.vendange === 'tache']
+  ];
+  const sansSrc = res.lines.filter(l => !(l.op && l.op.source)).length;
   return `
-  <section class="grid2">
-   <div>
-    <h2>Composition du coût</h2>
-    <div class="stack" role="img" aria-label="Répartition du coût par poste">${comp.map(c => `<span class="${c[3]}" style="flex:${Math.max(c[2], 0)}"></span>`).join('')}</div>
-    <ul class="legend">${comp.map(c => `<li><i class="${c[3]}"></i>${c[1]}<b>${eur(c[2])}</b><em>${s.cout ? fr(100 * c[2] / s.cout, 0) : 0} %</em></li>`).join('')}</ul>
-    <h2>Par famille d'opérations</h2>
-    <ol class="fam">${fam.map(([f, v]) => `<li><span>${esc(f)}</span><span class="bar"><span style="width:${100 * v / maxF}%"></span></span><b>${eur(v)}</b></li>`).join('')}</ol>
+  <div class="g-scen">
+   <div class="card">
+    <div class="hd"><h2>Composition du coût</h2><span class="m">par poste, € / ha</span></div>
+    <div class="stack" role="img" aria-label="Répartition du coût par poste">${comp.map(c => `<span class="${c[3]}" style="flex:${Math.max(c[2], 0)}" title="${esc(c[0])} : ${eur(c[2])}">${s.cout && c[2] / s.cout > 0.12 ? esc(c[1]) : ''}</span>`).join('')}</div>
+    <ul class="legend">${comp.map(c => `<li><i class="${c[3]}"></i>${esc(c[0])}<b>${eur(c[2])}</b><em>${part(c[2], s.cout)}</em></li>`).join('')}</ul>
+    <h2 class="mt2">Par famille d'opérations</h2>
+    <p class="note">${fr(fam.length)} familles · les trois premières pèsent ${part(tete3, s.cout)} du coût</p>
+    <ol class="fam">${fam.map(([f, v]) => `<li><span title="${esc(f)}">${esc(f)}</span><span class="bar"><span style="width:${100 * v / maxF}%;background:${famTok(f)}"></span></span><b>${eur(v)}</b><em>${part(v, s.cout)}</em></li>`).join('') || '<li><span class="mut">Aucune opération</span></li>'}</ol>
    </div>
-   <div>
-    <h2>Points à vérifier</h2>
-    ${res.warnings.length ? `<ul class="warn">${res.warnings.map(w => `<li>${esc(w)}</li>`).join('')}</ul>` : '<p class="ok">Aucune alerte sur ce scénario.</p>'}
-    <h2>Machines mobilisées</h2>
-    <table class="mini"><thead><tr><th>Machine</th><th>h/an scénario</th><th>h/an barème</th><th>€/h retenu</th></tr></thead><tbody>
-    ${Object.keys(res.heuresMach).map(k => { const m = S.ref.machines.find(x => x.code === k) || {}; const r = res.machRates[k] || {}; return `<tr><td>${esc(m.libelle || k)}</td><td>${fr(res.heuresMach[k], 0)}</td><td>${fr(m.heures)}</td><td>${fr(r.rate, 2)}</td></tr>`; }).join('') || '<tr><td colspan="4">Aucune</td></tr>'}
-    </tbody></table>
-    <p class="note">Coût exploitation : ${eur(s.coutExploit)} pour ${fr(res.surf, 2)} ha. Le temps de main-d'œuvre inclut le tractoriste : ne pas l'additionner au temps de traction.</p>
+   <div class="col">
+    <div class="card p0">
+     <div class="alert-h"><span class="n">${fr(al.length)}</span><h2>Points à vérifier</h2></div>
+     <ul class="alerts">${al.map(a => `<li><span class="lvl ${a[0]}">${esc(a[1])}</span><div><div class="tx">${esc(a[2])}</div><div class="or">${esc(a[3])}</div></div></li>`).join('')}</ul>
+    </div>
+    <div class="card">
+     <div class="hd"><h2>Matériel mobilisé</h2><span class="m">arbitrage A1</span></div>
+     <p class="note">Heures annuelles du barème comparées aux heures réellement mobilisées par le scénario, sur ${fr(res.surf, 2)} ha.</p>
+     <table class="mini"><thead><tr><th>Machine</th><th class="r">h/an barème</th><th class="r">h/an scénario</th><th class="r">€/h retenu</th></tr></thead><tbody>
+     ${Object.keys(res.heuresMach).map(k => { const m = S.ref.machines.find(x => x.code === k) || {}; const r = res.machRates[k] || {}; return `<tr><td>${esc(m.libelle || k)}</td><td class="r">${fr(m.heures)}</td><td class="r">${fr(res.heuresMach[k], 0)}</td><td class="r b">${r.err ? '–' : fr(r.rate, 2) + ' €'}</td></tr>`; }).join('') || '<tr><td colspan="4" class="mut">Aucune machine mobilisée par ce scénario.</td></tr>'}
+     </tbody></table>
+    </div>
+    <div class="card">
+     <h2>Comparer les méthodes</h2>
+     <p class="note">Les trois variantes ouvertes, sur le même scénario. Cliquer une ligne l'applique à toute la page.</p>
+     <div class="cmps">${cmp.map(c => { const d = c[3] - cb; return `<button class="cmp${c[4] ? ' on' : ''}" data-act="cmp" data-v="${c[0]}"><span><span class="t">${esc(c[1])}</span><span class="d">${esc(c[2])}</span></span><span><span class="c">${eur(c[3])}</span><span class="e ${sens(d)}">${d === 0 ? 'référence' : signe(d)}</span></span></button>`; }).join('')}</div>
+    </div>
    </div>
-  </section>
-  <section>
-   <div class="bar-t"><h2>Opérations du scénario ${esc(S.scen)}</h2>
-    <div class="acts">${empty ? `<button data-act="copyScen">Partir du scénario SC_2</button>` : ''}<button data-act="addLine">Ajouter une opération</button><button data-act="csv" class="dl">Exporter en CSV</button></div></div>
-   ${empty ? `<p class="empty">Ce profil n'a pas encore d'opérations. Partez du scénario SC_2 ou ajoutez les opérations une à une.</p>` : `
-   <div class="scroll"><table class="data"><thead><tr><th>Opération</th><th class="r">Passages</th><th class="r">€/ha</th><th class="r">dont MO</th><th class="r">matériel</th><th class="r">intrants</th><th class="r">presta</th><th class="r">h MO/ha</th><th class="r">h traction/ha</th><th></th></tr></thead><tbody>
-   ${lines.map(l => `<tr class="${l.unknown || !l.total ? 'flag' : ''}"><td>${sel(`scen.${l.idx}.code`, l.code, opsOpts.some(o => o[0] === l.code) ? opsOpts : [[l.code, `⚠ code inconnu : ${l.code}`], ...opsOpts])}</td><td class="r">${numIn(`scen.${l.idx}.nb`, l.nb, 1, 'xs')}</td><td class="r b">${fr(l.total)}</td><td class="r">${fr(l.mo)}</td><td class="r">${fr(l.mach)}</td><td class="r">${fr(l.intr)}</td><td class="r">${fr(l.presta)}</td><td class="r">${fr(l.h, 1)}</td><td class="r">${fr(l.hMach, 1)}</td><td><button class="x" data-act="delLine" data-i="${l.idx}" aria-label="Retirer la ligne">Retirer</button></td></tr>`).join('')}
-   </tbody><tfoot><tr><td>Total</td><td></td><td class="r b">${fr(s.cout)}</td><td class="r">${fr(s.mo)}</td><td class="r">${fr(s.mach)}</td><td class="r">${fr(s.intr)}</td><td class="r">${fr(s.presta)}</td><td class="r">${fr(s.hMO, 1)}</td><td class="r">${fr(s.hMach, 1)}</td><td></td></tr></tfoot></table></div>`}
-  </section>`;
+  </div>
+  <div class="card p0 mt">
+   <div class="card-h">
+    <div><h2>Opérations du scénario ${esc(S.scen)}</h2><p>${fr(res.lines.length)} opérations · ${fr(sansSrc)} sans source renseignée</p></div>
+    <div class="acts">
+     <button data-act="sources"${S.sources ? ' class="on"' : ''}>${S.sources ? 'Masquer les sources' : 'Afficher les sources'}</button>
+     <button data-act="addLine">Ajouter une opération</button>
+     <button data-act="csv" class="dl">Exporter en CSV</button>
+     <button data-act="print" class="pri">Imprimer la fiche</button>
+    </div>
+   </div>
+   ${empty ? `<div style="padding:20px"><p class="empty">Ce profil n'a pas encore d'opérations. Partez du scénario SC_2 ou ajoutez les opérations une à une.</p><div class="acts" style="margin-top:12px;justify-content:center"><button data-act="copyScen" class="pri">Partir du scénario SC_2</button></div></div>` : `
+   <div class="scroll"><table class="data wide"><thead><tr><th>Opération</th><th class="r">Passages</th><th class="r">€/ha</th><th class="r">MO</th><th class="r">Matériel</th><th class="r">Intrants</th><th class="r">Presta</th><th class="r">h MO</th><th class="r">h traction</th><th></th></tr></thead><tbody>
+   ${lignes.map(l => { const o = l.op, src = o && o.source, tok = famTok(o ? o.famille : 'Inconnu');
+     const opts = o ? opsOpts : [[l.code, `⚠ code inconnu : ${l.code}`], ...opsOpts];
+     return `<tr class="${l.unknown || !l.total ? 'flag' : ''}">
+    <td><div class="opc"><span class="f" style="background:${tok}"></span><span>${sel(`scen.${l.idx}.code`, l.code, opts, '', 'sl op-sel')}<span class="meta">${esc(l.code)}${o ? ' · ' + esc(o.mode) + '/' + esc(o.org) : ''}</span></span></div>${S.sources ? `<div class="srcl${src ? '' : ' no'}">${src ? 'Source : ' + esc(src) : 'Aucune source renseignée'}</div>` : ''}</td>
+    <td class="r">${numIn(`scen.${l.idx}.nb`, l.nb, 'xs')}</td>
+    <td class="r b">${eur(l.total)}</td>
+    <td class="r${l.mo ? '' : ' z'}">${eur(l.mo)}</td>
+    <td class="r${l.mach ? '' : ' z'}">${eur(l.mach)}</td>
+    <td class="r${l.intr ? '' : ' z'}">${eur(l.intr)}</td>
+    <td class="r${l.presta ? '' : ' z'}">${eur(l.presta)}</td>
+    <td class="r mut">${fr(l.h, 1)}</td>
+    <td class="r mut">${fr(l.hMach, 1)}</td>
+    <td class="r"><button class="x" data-act="delLine" data-i="${l.idx}" aria-label="Retirer la ligne">Retirer</button></td></tr>`; }).join('')}
+   </tbody><tfoot><tr><td>Total scénario</td><td></td><td class="r b">${eur(s.cout)}</td><td class="r">${eur(s.mo)}</td><td class="r">${eur(s.mach)}</td><td class="r">${eur(s.intr)}</td><td class="r">${eur(s.presta)}</td><td class="r">${fr(s.hMO, 1)}</td><td class="r">${fr(s.hMach, 1)}</td><td></td></tr></tfoot></table></div>
+   <div class="card-f"><span>Coût à l'échelle de l'exploitation <b>${eur(s.coutExploit)}</b></span><span>Produit <b>${eur(s.produit)}</b></span><span>Le temps de main-d'œuvre inclut le tractoriste : ne pas l'additionner au temps de traction.</span></div>`}
+  </div>`;
 }
 
 /* ---------- onglet opérations ---------- */
@@ -326,127 +626,200 @@ function renderOperations() {
   const moO = S.ref.mo.map(m => [m.code, m.code]), maO = S.ref.machines.map(m => [m.code, m.code]);
   const inO = S.ref.intrants.map(i => [i.id, `${i.composition || i.noms || i.code}${i.prix === null ? ' (prix ?)' : ''}`]);
   const f = S.filtre.toLowerCase();
-  const rows = S.ref.operations.map((o, i) => ({ o, i })).filter(({ o }) => !f || (o.code + o.libelle + o.famille).toLowerCase().includes(f));
-  return `<section>
-  <div class="bar-t"><h2>Référentiel des opérations</h2><div class="acts"><input class="t filtre" data-act="filtre" placeholder="Filtrer (code, libellé, famille)" value="${esc(S.filtre)}"><button data-act="addOp">Nouvelle opération</button></div></div>
-  <p class="note">Valeurs par hectare et par passage. Coût matériel calculé ici au barème (heures annuelles de l'onglet Barèmes) ; en mode « heures du scénario », il varie selon le scénario. Heures de traction = heures MO si une machine est renseignée.</p>
-  <div class="scroll"><table class="data edit"><thead><tr><th>Code</th><th>Famille</th><th>Libellé</th><th>Conduite</th><th>Organisation</th><th>Code MO</th><th class="r">h MO/ha</th><th>Machine</th><th>Intrant</th><th class="r">Qté/ha</th><th class="r">Presta €/ha</th><th class="r">Total €/ha</th><th>Source / hypothèse</th><th></th></tr></thead><tbody>
+  const all = S.ref.operations.map((o, i) => ({ o, i }));
+  const rows = all.filter(({ o }) => (!f || (o.code + o.libelle + o.famille).toLowerCase().includes(f)) && (!S.famille || o.famille === S.famille) && (!S.sansSource || !o.source));
+  const cnt = {}; all.forEach(({ o }) => cnt[o.famille] = (cnt[o.famille] || 0) + 1);
+  const fac = [['', 'Toutes', all.length]].concat(Object.entries(cnt).sort((a, b) => b[1] - a[1]).map(([n, c]) => [n, n, c]));
+  const nSans = all.filter(({ o }) => !o.source).length;
+  return `<div class="card p0">
+  <div class="card-h">
+   <div><h2>Référentiel des opérations</h2><p>${fr(all.length)} opérations · valeurs par hectare et par passage · coût matériel au barème</p></div>
+   <div class="acts">
+    <input class="t filtre" data-filt="filtre" placeholder="Filtrer code, libellé, famille" value="${esc(S.filtre)}">
+    <button data-act="sansSource"${S.sansSource ? ' class="on"' : ''}>Sans source (${fr(nSans)})</button>
+    <button data-act="addOp" class="pri">Nouvelle opération</button>
+   </div>
+  </div>
+  <div class="facettes">${fac.map(x => `<button class="fac${S.famille === x[0] ? ' on' : ''}" data-act="fac" data-v="${esc(x[0])}">${esc(x[1])}<span class="n">${fr(x[2])}</span></button>`).join('')}</div>
+  <div class="scroll tall"><table class="data wider"><thead><tr><th>Code</th><th>Famille</th><th>Libellé</th><th>Conduite</th><th>Code MO</th><th class="r">h MO/ha</th><th>Machine</th><th>Intrant</th><th class="r">Qté/ha</th><th class="r">Presta €/ha</th><th class="r">Total €/ha</th><th>Source / hypothèse</th><th></th></tr></thead><tbody>
   ${rows.map(({ o, i }) => { const c = Core.coutOp(S.ref, o, S.opts, mr); return `<tr class="${c.total ? '' : 'flag'}">
-   <td>${txtIn(`op.${i}.code`, o.code, 'w9')}</td><td>${txtIn(`op.${i}.famille`, o.famille, 'w8')}</td><td>${txtIn(`op.${i}.libelle`, o.libelle, 'w14')}</td>
-   <td>${sel(`op.${i}.mode`, o.mode, [['VE', 'VE'], ['VSL', 'VSL'], ['NA', 'NA']])}</td><td>${sel(`op.${i}.org`, o.org, [['Exploitation', 'Exploitation'], ['Prestataire', 'Prestataire'], ['Mixte', 'Mixte']])}</td>
-   <td>${sel(`op.${i}.codeMO`, o.codeMO || '', moO, '—')}</td><td class="r">${numIn(`op.${i}.hMO`, o.hMO, 'any', 'xs')}</td><td>${sel(`op.${i}.codeMach`, o.codeMach || '', maO, '—')}</td>
-   <td>${sel(`op.${i}.intrant`, o.intrant || '', inO, '—')}</td><td class="r">${numIn(`op.${i}.qIntrant`, o.qIntrant, 'any', 'xs')}</td><td class="r">${numIn(`op.${i}.presta`, o.presta, 'any', 'xs')}</td>
-   <td class="r b">${fr(c.total)}</td><td>${txtIn(`op.${i}.source`, o.source, 'w12')}</td>
+   <td>${txtIn(`op.${i}.code`, o.code, 'sl mono w9')}</td>
+   <td><span class="famc"><i class="pas" style="background:${famTok(o.famille)}"></i>${txtIn(`op.${i}.famille`, o.famille, 'sl w8')}</span></td>
+   <td>${txtIn(`op.${i}.libelle`, o.libelle, 'sl w14')}</td>
+   <td class="nw">${sel(`op.${i}.mode`, o.mode, [['VE', 'VE'], ['VSL', 'VSL'], ['NA', 'NA']], '', 'sl')} / ${sel(`op.${i}.org`, o.org, [['Exploitation', 'Exploitation'], ['Prestataire', 'Prestataire'], ['Mixte', 'Mixte']], '', 'sl')}</td>
+   <td>${sel(`op.${i}.codeMO`, o.codeMO || '', moO, '–', 'sl')}</td>
+   <td class="r">${numIn(`op.${i}.hMO`, o.hMO, 'xs')}</td>
+   <td>${sel(`op.${i}.codeMach`, o.codeMach || '', maO, '–', 'sl')}</td>
+   <td><span class="cut">${sel(`op.${i}.intrant`, o.intrant || '', inO, '–', 'sl')}</span></td>
+   <td class="r">${numIn(`op.${i}.qIntrant`, o.qIntrant, 'xs')}</td>
+   <td class="r">${numIn(`op.${i}.presta`, o.presta, 'xs')}</td>
+   <td class="r b${c.total ? '' : ' ko'}">${eur(c.total)}</td>
+   <td>${txtIn(`op.${i}.source`, o.source, 'sl w12')}${o.source ? '' : '<span class="ko"> à sourcer</span>'}</td>
    <td class="nw"><button class="x" data-act="dupOp" data-i="${i}">Dupliquer</button> <button class="x" data-act="delOp" data-i="${i}" ${used.has(o.code) ? 'disabled title="Utilisée dans un scénario : retirez-la d\'abord du scénario"' : ''}>Supprimer</button></td></tr>`; }).join('')}
-  </tbody></table></div></section>`;
+  </tbody></table></div>
+  <div class="card-f"><span>${fr(rows.length)} opérations affichées sur ${fr(all.length)}</span><span>Valeur absente : « – ». Ligne à coût nul signalée en fond ocre.</span></div>
+ </div>`;
 }
 
 /* ---------- onglet barèmes ---------- */
 function renderBaremes() {
-  const f = S.filtre.toLowerCase();
-  const ins = S.ref.intrants.map((x, i) => ({ x, i })).filter(({ x }) => !f || [x.code, x.type, x.composition, x.noms].join(' ').toLowerCase().includes(f));
-  return `<section><h2>Main-d'œuvre</h2>
-  <p class="note">Coût horaire = salaire brut × (1 + charges). Les charges agrègent aujourd'hui cotisations, congés payés et indemnités : décomposition à arbitrer.</p>
-  <div class="scroll"><table class="data edit"><thead><tr><th>Code</th><th>Libellé</th><th class="r">Brut €/h</th><th class="r">Charges (ex. 0,5)</th><th class="r">€/kg</th><th class="r">Coût €/h</th><th>Remarque</th></tr></thead><tbody>
-  ${S.ref.mo.map((m, i) => { const r = Core.rateMO(S.ref, m.code); return `<tr><td>${esc(m.code)}</td><td>${txtIn(`mo.${i}.libelle`, m.libelle, 'w12')}</td><td class="r">${numIn(`mo.${i}.brut`, m.brut, 'any', 'xs')}</td><td class="r">${numIn(`mo.${i}.charges`, m.charges, 'any', 'xs')}</td><td class="r">${numIn(`mo.${i}.eurKg`, m.eurKg, 'any', 'xs')}</td><td class="r b">${r.err ? '–' : fr(r.rate, 2)}</td><td>${txtIn(`mo.${i}.remarque`, m.remarque, 'w16')}</td></tr>`; }).join('')}
-  </tbody></table></div></section>
-  <section><h2>Matériel</h2>
-  <p class="note">Coût horaire au barème = (annuité au taux d'intérêt + entretien + autres frais + assurance) ÷ heures annuelles + consommation × prix du GNR.</p>
-  <div class="scroll"><table class="data edit"><thead><tr><th>Code</th><th>Machine</th><th class="r">Valeur €</th><th class="r">Durée ans</th><th class="r">h/an</th><th class="r">Entretien €/an</th><th class="r">L/h</th><th class="r">Autres €/an</th><th class="r">Assurance €/an</th><th class="r">€/h barème</th><th>Source</th></tr></thead><tbody>
-  ${S.ref.machines.map((m, i) => { const r = Core.rateMach(S.ref, m.code, m.heures); return `<tr><td>${esc(m.code)}</td><td>${txtIn(`ma.${i}.libelle`, m.libelle, 'w12')}</td>${['valeur', 'duree', 'heures', 'entretien', 'conso', 'autres', 'assurance'].map(k => `<td class="r">${numIn(`ma.${i}.${k}`, m[k], 'any', 'xs')}</td>`).join('')}<td class="r b">${r.err ? '–' : fr(r.rate, 2)}</td><td>${txtIn(`ma.${i}.source`, m.source, 'w16')}</td></tr>`; }).join('')}
-  </tbody></table></div></section>
-  <section><div class="bar-t"><h2>Intrants</h2><input class="t filtre" data-act="filtre" placeholder="Filtrer (substance, produit, type)" value="${esc(S.filtre)}"></div>
-  <p class="note">${S.ref.intrants.filter(x => x.prix === null).length} intrants sans prix. Le prix doit correspondre à l'unité de la quantité saisie dans l'opération.</p>
-  <div class="scroll tall"><table class="data edit"><thead><tr><th>Code</th><th>Type</th><th>Composition</th><th>Produits commerciaux</th><th class="r">Prix</th><th>Unité</th></tr></thead><tbody>
-  ${ins.map(({ x, i }) => `<tr class="${x.prix === null ? 'soft' : ''}"><td>${esc(x.code)}</td><td>${esc(x.type)}</td><td>${esc(x.composition)}</td><td class="long">${esc(x.noms)}</td><td class="r">${numIn(`in.${i}.prix`, x.prix, 'any', 'xs')}</td><td>${txtIn(`in.${i}.unite`, x.unite, 'w6')}</td></tr>`).join('')}
-  </tbody></table></div></section>`;
+  const f = S.filtreIntr.toLowerCase();
+  const tous = S.ref.intrants.map((x, i) => ({ x, i }));
+  const filtres = tous.filter(({ x }) => (!f || [x.code, x.type, x.composition, x.noms].join(' ').toLowerCase().includes(f)) && (!S.sansPrix || x.prix === null));
+  const LIM = 60, coupe = !S.intrTout && filtres.length > LIM;
+  const ins = coupe ? filtres.slice(0, LIM) : filtres;
+  const nSansPrix = tous.filter(({ x }) => x.prix === null).length;
+  return `<div class="col">
+  <div class="card">
+   <div class="hd"><h2>Main-d'œuvre</h2><span class="m">coût horaire = brut × (1 + charges)</span></div>
+   <p class="note">Les charges agrègent aujourd'hui cotisations, congés payés et indemnités : décomposition à arbitrer (A4).</p>
+   <div class="mogrid">${S.ref.mo.map((m, i) => { const r = Core.rateMO(S.ref, m.code), presta = m.charges === null; return `<div class="mo${presta ? ' presta' : ''}">
+    <div class="mo-t">${txtIn(`mo.${i}.libelle`, m.libelle, 'sl')}<span class="c">${esc(m.code)}</span></div>
+    <div><span class="rate">${r.err ? '–' : fr(r.rate, 2)}</span> <span class="u">€/h chargé</span></div>
+    <div class="d">${numIn(`mo.${i}.brut`, m.brut, 'xs')} € brut × (1 + ${numIn(`mo.${i}.charges`, m.charges, 'xs')})</div>
+    <div class="d">${numIn(`mo.${i}.eurKg`, m.eurKg, 'xs')} €/kg à la tâche</div>
+    <div class="rq">${txtIn(`mo.${i}.remarque`, m.remarque, 'sl')}</div>
+   </div>`; }).join('')}</div>
+  </div>
+  <div class="card p0">
+   <div class="card-h"><div><h2>Matériel</h2><p>Coût horaire au barème = (annuité au taux d'intérêt + entretien + autres frais + assurance) ÷ heures annuelles + consommation × prix du GNR.</p></div></div>
+   <div class="scroll"><table class="data w980"><thead><tr><th>Machine</th><th class="r">Valeur €</th><th class="r">Durée ans</th><th class="r">h/an</th><th class="r">Entretien €/an</th><th class="r">L/h</th><th class="r">Autres €/an</th><th class="r">Assurance €/an</th><th class="r">€/h barème</th><th>Source</th></tr></thead><tbody>
+   ${S.ref.machines.map((m, i) => { const r = Core.rateMach(S.ref, m.code, m.heures); return `<tr>
+    <td>${txtIn(`ma.${i}.libelle`, m.libelle, 'sl w12')}<span class="meta">${esc(m.code)}</span></td>
+    ${['valeur', 'duree', 'heures', 'entretien', 'conso', 'autres', 'assurance'].map(k => `<td class="r">${numIn(`ma.${i}.${k}`, m[k], 'xs')}</td>`).join('')}
+    <td class="r b">${r.err ? '–' : fr(r.rate, 2)}</td><td class="long lg">${esc(m.source)}</td></tr>`; }).join('')}
+   </tbody></table></div>
+  </div>
+  <div class="card p0">
+   <div class="card-h">
+    <div><h2>Intrants</h2><p>${fr(tous.length)} intrants · ${fr(nSansPrix)} sans prix · le prix doit correspondre à l'unité de la quantité saisie</p></div>
+    <div class="acts">
+     <input class="t filtre lg" data-filt="filtreIntr" placeholder="Filtrer substance, produit, type" value="${esc(S.filtreIntr)}">
+     <button data-act="sansPrix"${S.sansPrix ? ' class="on"' : ''}>Sans prix (${fr(nSansPrix)})</button>
+    </div>
+   </div>
+   <div class="scroll mid"><table class="data w820"><thead><tr><th>Code</th><th>Type</th><th>Composition</th><th>Produits commerciaux</th><th class="r">Prix</th><th>Unité</th></tr></thead><tbody>
+   ${ins.map(({ x, i }) => `<tr class="${x.prix === null ? 'soft' : ''}"><td class="mono mut">${esc(x.code)}</td><td class="mut">${esc(x.type)}</td><td>${esc(x.composition || '–')}</td><td class="long lg">${esc(x.noms || '–')}</td><td class="r">${numIn(`in.${i}.prix`, x.prix, 'xs')}${x.prix === null ? '<span class="ko"> à saisir</span>' : ''}</td><td>${txtIn(`in.${i}.unite`, x.unite, 'sl w6')}</td></tr>`).join('')}
+   </tbody></table></div>
+   ${coupe ? `<div class="card-f"><span>${fr(LIM)} lignes affichées sur ${fr(filtres.length)}</span><button data-act="intrTout">Afficher toutes les lignes</button></div>` : `<div class="card-f"><span>${fr(ins.length)} lignes affichées sur ${fr(tous.length)}</span></div>`}
+  </div>
+ </div>`;
 }
 
-/* ---------- onglet paramètres & méthodes ---------- */
-function radio(name, v, cur, label, desc) { return `<label class="opt ${v === cur ? 'on' : ''}"><input type="radio" name="${name}" value="${v}" data-path="opts.${name}"${v === cur ? ' checked' : ''}><span><b>${label}</b><br>${desc}</span></label>`; }
-function renderParams() {
+/* ---------- onglet paramètres et méthodes ---------- */
+function renderParams(V) {
   const P = S.ref.params, O = S.opts;
   const kg = Core.kgRecoltes(S.ref, O);
-  return `<section class="grid2"><div>
+  const topMach = Object.entries(V.mach.heuresMach).sort((a, b) => b[1] - a[1])[0];
+  const libMach = topMach ? (S.ref.machines.find(m => m.code === topMach[0]) || {}).libelle || topMach[0] : '';
+  const cueil = r => { const l = ligneCueillette(r); return l ? eur(l.total) : '–'; };
+  const cueilMO = r => { const l = ligneCueillette(r); return l ? eur(l.mo) : '–'; };
+  const rows = [
+    ['p.volume', 'Rendement commercialisable', P.volume, 'kg/ha', 'Comité Champagne, communiqué vendange 2026 (22/07/2026)'],
+    ['p.butoir', 'Rendement butoir', P.butoir, 'kg/ha', 'CIVC-REND-2026'],
+    ['p.plafondReserve', 'Plafond de réserve', P.plafondReserve, 'kg/ha', 'CIVC-REND-2026'],
+    ['opts.miseReserve', 'Mise en réserve récoltée', O.miseReserve, 'kg/ha', 'Au-delà du rendement, jusqu\'au butoir, dans la limite du plafond de réserve. Sert aux modes de vendange indexés.'],
+    ['p.prix1', 'Prix du raisin, scénario 1', P.prix1, '€/kg', 'Valeur de travail. Cerfrance cité par la presse : 7,35 €/kg en 2024 (source secondaire).'],
+    ['p.prix2', 'Prix du raisin, scénario 2', P.prix2, '€/kg', 'Variante haute.'],
+    ['p.taux', "Taux d'intérêt (annuités)", P.taux, '', '0,03 = 3 %'],
+    ['p.gnr', 'Prix du GNR', P.gnr, '€/L', 'Saisir un prix HT facture. Repère mi-septembre 2026 : ~1,97 €/L en Champagne-Ardenne (GNR-DETAIL-2026-09).']
+  ];
+  const meths = [
+    ['machine', 'bareme', 'Matériel — heures annuelles du barème', "Reproduit le classeur. Sous-estime le coût quand l'exploitation utilise peu la machine.", `Coût total ${eur(V.base.synth.cout)} /ha`],
+    ['machine', 'scenario', 'Matériel — heures calculées depuis le scénario', "Heures = h/ha × passages × surface moyenne du profil. Révèle le coût réel d'un matériel détenu sur petite surface.", `Coût total ${eur(V.mach.synth.cout)} /ha${topMach ? ` · ${libMach} à ${fr(topMach[1], 0)} h/an` : ''}`],
+    ['vendange', 'fixe', 'Cueillette — temps fixe par hectare', "Reproduit le classeur : h/ha saisi dans l'opération, indépendant du rendement.", `Cueillette ${cueil(V.base)} /ha`],
+    ['vendange', 'productivite', 'Cueillette — productivité kg/h', `Temps = kg récoltés ÷ kg/h × coefficient d'organisation. Ici ${fr(kg)} kg → ${fr(kg / O.kgh * O.coefOrga, 0)} h/ha.`, `Cueillette ${cueil(V.prod)} /ha`],
+    ['vendange', 'tache', 'Cueillette — tâche au kilo', 'kg récoltés × (prix du kilo + prime de tri) × indemnités × charges résiduelles + frais annexes.', `Cueillette ${cueilMO(V.tache)} /ha · barème SGV 2025`]
+  ];
+  return `<div class="g2">
+  <div class="card">
    <h2>Paramètres de campagne</h2>
-   <table class="form"><tbody>
-    <tr><th>Rendement commercialisable</th><td>${numIn('p.volume', P.volume)} kg/ha</td><td class="src">8 800 kg/ha pour 2026 (Comité Champagne, 22/07/2026)</td></tr>
-    <tr><th>Mise en réserve récoltée</th><td>${numIn('opts.miseReserve', O.miseReserve)} kg/ha</td><td class="src">Au-delà du rendement, jusqu'au butoir de 15 500 kg/ha, dans la limite du plafond de réserve de 10 000 kg/ha. Sert aux modes de vendange indexés.</td></tr>
-    <tr><th>Prix du raisin, scénario 1</th><td>${numIn('p.prix1', P.prix1)} €/kg</td><td class="src">Valeur de travail. Cerfrance cité par la presse : 7,35 €/kg en 2024 (source secondaire).</td></tr>
-    <tr><th>Prix du raisin, scénario 2</th><td>${numIn('p.prix2', P.prix2)} €/kg</td><td></td></tr>
-    <tr><th>Prix retenu</th><td colspan="2">${sel('opts.prix', O.prix, [['prix1', 'Scénario 1'], ['prix2', 'Scénario 2']])}</td></tr>
-    <tr><th>Taux d'intérêt (annuités)</th><td>${numIn('p.taux', P.taux)}</td><td class="src">0,03 = 3 %</td></tr>
-    <tr><th>Prix du GNR</th><td>${numIn('p.gnr', P.gnr)} €/L</td><td class="src">Saisir un prix HT facture. Repère de détail mi-septembre 2026 : ~1,97 €/L en Champagne-Ardenne (statut HT/TTC non précisé, marché volatil).</td></tr>
-   </tbody></table>
-  </div><div>
-   <h2>Méthodes de calcul</h2>
-   <p class="note">Ces choix de méthode sont ouverts. La valeur par défaut reproduit le classeur Excel v2 ; les variantes restent visibles pour arbitrage.</p>
-   <fieldset><legend>Coût horaire du matériel</legend>
-    ${radio('machine', 'bareme', O.machine, 'Heures annuelles du barème', "Reproduit le classeur. Sous-estime le coût quand l'exploitation utilise peu la machine.")}
-    ${radio('machine', 'scenario', O.machine, 'Heures calculées depuis le scénario', "Heures = h/ha × passages × surface moyenne du profil. Révèle le coût réel d'un matériel détenu sur petite surface.")}
-   </fieldset>
-   <fieldset><legend>Cueillette (opération VEN_1)</legend>
-    ${radio('vendange', 'fixe', O.vendange, 'Temps fixe par hectare', "Reproduit le classeur : h/ha saisi dans l'opération, indépendant du rendement.")}
-    ${radio('vendange', 'productivite', O.vendange, 'Productivité kg/h', `Temps = kg récoltés ÷ kg/h × coefficient d'organisation. Ici : ${fr(kg)} kg → ${fr(kg / O.kgh * O.coefOrga, 0)} h/ha.`)}
-    ${radio('vendange', 'tache', O.vendange, 'Tâche au kilo', 'Coût = kg récoltés × (prix du kilo + prime de tri) × indemnités × charges résiduelles + frais annexes au kilo.')}
-    <table class="form"><tbody>
-     <tr><th>Productivité</th><td>${numIn('opts.kgh', O.kgh, 'any', 'xs')} kg/h</td><th>Coefficient d'organisation</th><td>${numIn('opts.coefOrga', O.coefOrga, 'any', 'xs')}</td></tr>
-     <tr><th>Prix du kilo brut</th><td>${numIn('opts.prixKg', O.prixKg, 'any', 'xs')} €/kg</td><th>Prime qualitative de tri</th><td>${numIn('opts.primeTri', O.primeTri, 'any', 'xs')} €/kg</td></tr>
-     <tr><th>Indemnité fin de contrat</th><td>${numIn('opts.finContrat', O.finContrat, 'any', 'xs')}</td><th>Indemnité congés payés</th><td>${numIn('opts.cp', O.cp, 'any', 'xs')}</td></tr>
-     <tr><th>Charges patronales résiduelles</th><td>${numIn('opts.chargesResid', O.chargesResid, 'any', 'xs')}</td><th>Logement, repas, transport</th><td>${numIn('opts.fraisAnnexesKg', O.fraisAnnexesKg, 'any', 'xs')} €/kg</td></tr>
-    </tbody></table>
-    <p class="src">Barème SGV vendanges 2025 : 0,214 €/kg brut (rendement de 7 000 à 10 000 kg/ha, vignes non effeuillées, avec débardage), plus 10 % d'indemnité de fin de contrat et 10 % de congés payés, vendangeur non nourri non logé. Charges résiduelles sous TO-DE et frais annexes : à confirmer (MSA, SGV).</p>
-   </fieldset>
-  </div></section>
-  <section><h2>Référentiel</h2>
-   <p class="note">Version ${esc(S.ref.version)} · ${esc(S.ref.source)}. Les modifications sont enregistrées dans ce navigateur.</p>
-   <div class="acts"><button data-act="json" class="dl">Exporter le référentiel (JSON)</button><label class="btn">Importer un référentiel<input type="file" accept=".json,application/json" data-act="import" hidden></label><button data-act="reset" class="danger">Revenir aux valeurs d'origine</button></div>
-  </section>`;
+   <div class="rows">${rows.map(r => `<div class="row"><div><div class="l">${esc(r[1])}</div><div class="s">${esc(r[4])}</div></div><div class="v">${numIn(r[0], r[2])}<span class="u">${esc(r[3])}</span></div></div>`).join('')}
+    <div class="row"><div><div class="l">Prix retenu pour le produit et la marge</div><div class="s">Bascule entre les deux prix ci-dessus.</div></div><div class="v">${sel('opts.prix', O.prix, [['prix1', 'Scénario 1'], ['prix2', 'Scénario 2']])}<span class="u"></span></div></div>
+   </div>
+  </div>
+  <div class="col">
+   <div class="card">
+    <h2>Méthodes de calcul</h2>
+    <p class="note">La valeur par défaut reproduit le classeur Excel v2. Les variantes restent visibles pour arbitrage et changent la page entière.</p>
+    <div class="meths">${meths.map(m => `<button class="mth${O[m[0]] === m[1] ? ' on' : ''}" data-act="opt" data-k="${m[0]}" data-v="${m[1]}"><span class="dot"></span><span><span class="t">${esc(m[2])}</span><span class="d">${esc(m[3])}</span><span class="k">${esc(m[4])}</span></span></button>`).join('')}</div>
+    <p class="note mt">Référentiel ${esc(S.ref.version)} · ${esc(S.ref.source)}</p>
+   </div>
+   <div class="card">
+    <h2>Paramètres de la cueillette</h2>
+    <p class="note">Utilisés par les variantes « productivité » et « tâche ». Barème SGV vendanges 2025 : 0,214 €/kg brut (7 000 à 10 000 kg/ha, vignes non effeuillées, avec débardage), plus 10 % d'indemnité de fin de contrat et 10 % de congés payés, vendangeur non nourri non logé. Charges résiduelles sous TO-DE et frais annexes : à confirmer (MSA, SGV).</p>
+    <div class="rows">
+     ${[['opts.kgh', 'Productivité', O.kgh, 'kg/h'], ['opts.coefOrga', "Coefficient d'organisation", O.coefOrga, ''], ['opts.prixKg', 'Prix du kilo brut', O.prixKg, '€/kg'], ['opts.primeTri', 'Prime qualitative de tri', O.primeTri, '€/kg'], ['opts.finContrat', 'Indemnité fin de contrat', O.finContrat, 'part'], ['opts.cp', 'Indemnité congés payés', O.cp, 'part'], ['opts.chargesResid', 'Charges patronales résiduelles', O.chargesResid, 'part'], ['opts.fraisAnnexesKg', 'Logement, repas, transport', O.fraisAnnexesKg, '€/kg']]
+       .map(r => `<div class="row fld"><div class="l">${esc(r[1])}</div><div class="v">${numIn(r[0], r[2])}<span class="u">${esc(r[3])}</span></div></div>`).join('')}
+    </div>
+   </div>
+   <div class="card">
+    <h2>Référentiel</h2>
+    <p class="note">Les modifications sont enregistrées dans ce navigateur, jamais envoyées ailleurs.</p>
+    <div class="acts"><button data-act="json" class="dl">Exporter le référentiel (JSON)</button><label class="btn">Importer un référentiel<input type="file" accept=".json,application/json" data-act="import" hidden></label><button data-act="reset" class="danger">Revenir aux valeurs d'origine</button></div>
+   </div>
+  </div>
+ </div>`;
 }
 
-/* ---------- onglet débit ---------- */
+/* ---------- onglet débit de chantier ---------- */
 function renderDebit() {
   const d = S.debit, r = Core.debit(d);
-  const max = Math.max(...r.sensib.map(x => x.hHa));
-  const f = (k, l, u) => `<tr><th>${l}</th><td>${numIn('debit.' + k, d[k])} ${u}</td></tr>`;
-  return `<section class="grid2"><div>
+  const max = Math.max(...r.sensib.map(x => x.hHa), 0.001);
+  const champs = [['longueur', 'Longueur des rangs', 'm'], ['largeur', 'Largeur de la parcelle', 'm'], ['ecRang', 'Écartement entre rangs', 'm'], ['ecPied', 'Écartement entre pieds', 'm'],
+    ['piedsH', 'Rendement manuel', 'pieds/h'], ['vitesse', "Vitesse d'avancement", 'km/h'], ['rangsPassage', 'Rangs par passage', ''], ['demiTour', 'Demi-tour par passage', 's'],
+    ['arret', "Temps d'arrêt", 'part'], ['route', 'Temps de route', 'part']];
+  const res = [[fr(r.surf, 4) + ' ha', 'surface de la parcelle', ''], [fr(r.densite) + ' /ha', `${fr(r.rangs)} rangs · ${fr(r.pieds)} pieds`, ''],
+    [fr(r.hHaMan, 1) + ' h/ha', 'chantier manuel', 'ok'], [fr(r.hHaMach, 2) + ' h/ha', `chantier mécanisé · ${fr(r.passages)} passages`, 'acc'],
+    [fr(100 * r.partDemiTour, 0) + ' %', 'part des demi-tours', 'ko']];
+  return `<div class="g-debit">
+  <div class="card">
    <h2>Parcelle et chantier</h2>
-   <table class="form"><tbody>
-    ${f('longueur', 'Longueur des rangs', 'm')}${f('largeur', 'Largeur de la parcelle', 'm')}${f('ecRang', 'Écartement entre rangs', 'm')}${f('ecPied', 'Écartement entre pieds', 'm')}
-    ${f('piedsH', 'Rendement manuel', 'pieds/h')}${f('vitesse', "Vitesse d'avancement", 'km/h')}${f('rangsPassage', 'Rangs travaillés par passage', '')}${f('demiTour', 'Demi-tour par passage', 's')}${f('arret', "Temps d'arrêt (part du travail)", '')}${f('route', 'Temps de route (part du travail)', '')}
-   </tbody></table>
-  </div><div>
-   <h2>Résultats ramenés à l'hectare</h2>
-   <dl class="res"><dt>Surface</dt><dd>${fr(r.surf, 4)} ha · ${r.rangs} rangs · ${r.pieds} pieds</dd><dt>Densité</dt><dd>${fr(r.densite)} pieds/ha</dd>
-   <dt>Chantier manuel</dt><dd>${fr(r.hHaMan, 1)} h/ha</dd><dt>Chantier mécanisé</dt><dd>${fr(r.hHaMach, 2)} h/ha · ${r.passages} passages</dd>
-   <dt>Part des demi-tours</dt><dd>${fr(100 * r.partDemiTour, 0)} % du temps de travail</dd></dl>
-   <h2>Sensibilité à la vitesse</h2>
-   <ol class="fam sens">${r.sensib.map(x => `<li><span>${x.v} km/h</span><span class="bar"><span style="width:${100 * x.hHa / max}%"></span></span><b>${fr(x.hHa, 2)} h/ha</b></li>`).join('')}</ol>
-   <p class="note">Sur rangs courts, le temps de demi-tour domine : augmenter la vitesse gagne peu. Ce simulateur n'est pas encore relié aux h/ha des opérations.</p>
-  </div></section>`;
+   <p class="note">Géométrie de la parcelle et conduite du chantier. Saisie en virgule décimale.</p>
+   <div class="rows">${champs.map(c => `<label class="row fld"><span class="l">${esc(c[1])}</span><span class="v">${numIn('debit.' + c[0], d[c[0]])}<span class="u">${esc(c[2])}</span></span></label>`).join('')}</div>
+  </div>
+  <div class="col">
+   <div class="card">
+    <h2>Résultats ramenés à l'hectare</h2>
+    <div class="res mt">${res.map(x => `<div><div class="v ${x[2]}">${x[0]}</div><div class="l">${esc(x[1])}</div></div>`).join('')}</div>
+    <p class="note" style="margin:16px 0 0">Sur rangs courts, le temps de demi-tour domine : ici ${fr(100 * r.partDemiTour, 0)} % du temps de travail, donc augmenter la vitesse gagne peu. Ce simulateur n'est pas encore relié aux h/ha des opérations (arbitrage A6).</p>
+   </div>
+   <div class="card">
+    <div class="hd"><h2>Sensibilité à la vitesse</h2><span class="m">h / ha, chantier mécanisé</span></div>
+    <ol class="sens">${r.sensib.map(x => `<li class="${x.v === Number(d.vitesse) ? 'cur' : ''}"><span class="v">${fr(x.v)} km/h</span><span class="bar"><span style="width:${100 * x.hHa / max}%"></span></span><b>${fr(x.hHa, 2)}</b></li>`).join('')}</ol>
+   </div>
+  </div>
+ </div>`;
 }
 
-/* ---------- onglet contrôles & tests ---------- */
+/* ---------- onglet contrôles et tests ---------- */
 const runTests = () => CasValidation.executer(Core, clone(FACTORY));
 function renderControles() {
   const c = Core.controles(S.ref), t = runTests(), okN = t.filter(x => x.ok).length;
-  return `<section class="grid2"><div><h2>Cohérence du référentiel en cours</h2>
-   <table class="data"><thead><tr><th>Contrôle</th><th class="r">Résultat</th><th>Lecture</th></tr></thead><tbody>
-   ${c.map(x => `<tr class="${x.n && x.attendu === '0' ? 'flag' : ''}"><td>${esc(x.label)}${x.detail.length && x.detail.length <= 15 ? `<br><small>${esc(x.detail.join(', '))}</small>` : ''}</td><td class="r b">${x.n}</td><td>${esc(x.attendu)}</td></tr>`).join('')}
-   </tbody></table></div>
-   <div><h2>Tests de validation <span class="${okN === t.length ? 'pass' : 'fail'}">${okN}/${t.length}</span></h2>
-   <p class="note">Exécutés sur les valeurs d'origine, indépendamment de vos modifications.</p>
-   <table class="data"><tbody>${t.map(x => `<tr class="${x.ok ? '' : 'flag'}"><td>${x.id}</td><td>${esc(x.l)}</td><td class="r">${fr(x.v, 3)}</td><td>${x.ok ? 'OK' : 'Écart'}</td></tr>`).join('')}</tbody></table>
-  </div></section>`;
+  const sev = x => x.attendu === '0' ? (x.n ? 'ko' : 'ok') : (x.n ? 'mid-c' : 'ok');
+  return `<div class="g2">
+  <div class="card">
+   <h2>Cohérence du référentiel</h2>
+   <p class="note">Calculée sur le référentiel en cours, saisies comprises.</p>
+   <div class="rows">${c.map(x => `<div class="ctl"><div><div class="l">${esc(x.label)}</div><div class="s">${esc(x.attendu)}${x.detail.length && x.detail.length <= 15 ? ' · ' + esc(x.detail.join(', ')) : ''}</div></div><span class="n ${sev(x)}">${fr(x.n)}</span></div>`).join('')}</div>
+  </div>
+  <div class="card">
+   <div class="hd"><h2>Cas de validation <span class="score ${okN === t.length ? 'ok' : 'ko'}">${fr(okN)} / ${fr(t.length)}</span></h2></div>
+   <p class="note">Exécutés sur les valeurs d'origine, indépendamment des saisies.</p>
+   <div class="rows">${t.map(x => `<div class="tst"><span class="id">${esc(x.id)}</span><div><div class="l">${esc(x.l)}</div><div class="o">${esc(x.origine)} · valeur obtenue ${fr(x.v, 3)}</div></div><span class="vd ${x.ok ? 'ok' : 'ko'}">${x.ok ? 'OK' : 'Écart'}</span></div>`).join('')}</div>
+  </div>
+ </div>`;
 }
 
 /* ---------- rendu ---------- */
 const TABS = [['scenario', 'Scénario'], ['operations', 'Opérations'], ['baremes', 'Barèmes'], ['params', 'Paramètres et méthodes'], ['debit', 'Débit de chantier'], ['controles', 'Contrôles et tests']];
 function render() {
   const res = Core.scenario(S.ref, S.opts, S.scen);
-  renderHead(res);
-  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" aria-selected="${k === S.tab}" data-tab="${k}">${l}</button>`).join('');
-  const fn = { scenario: () => renderScenario(res), operations: renderOperations, baremes: renderBaremes, params: renderParams, debit: renderDebit, controles: renderControles }[S.tab];
+  const V = variantes();
+  renderHead(res, V);
+  const t = runTests(), badge = { operations: fr(S.ref.operations.length), controles: `${fr(t.filter(x => x.ok).length)}/${fr(t.length)}` };
+  $('#tabs').innerHTML = TABS.map(([k, l]) => `<button role="tab" aria-selected="${k === S.tab}" data-tab="${k}">${esc(l)}${badge[k] ? `<span class="n">${badge[k]}</span>` : ''}</button>`).join('');
+  const fn = { scenario: () => renderScenario(res, V), operations: renderOperations, baremes: renderBaremes, params: () => renderParams(V), debit: renderDebit, controles: renderControles }[S.tab];
   $('#main').innerHTML = fn();
   if (!dl) document.querySelectorAll('.dl').forEach(b => b.hidden = !fallbackDl);
 }
@@ -476,19 +849,28 @@ function setPath(path, raw) {
 }
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.id === 'scenSel') { S.scen = t.value; save(); render(); return; }
+  if (t.id === 'prof') { S.scen = t.value; save(); render(); return; }
   if (t.dataset.act === 'import') { importJson(t.files[0]); return; }
-  if (t.dataset.act === 'filtre') { S.filtre = t.value; render(); return; }
+  if (t.dataset.filt) { S[t.dataset.filt] = t.value; render(); return; }
   if (t.dataset.path) setPath(t.dataset.path, t.value);
 });
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
-  if (b.dataset.tab) { S.tab = b.dataset.tab; S.filtre = ''; save(); render(); return; }
+  if (b.dataset.tab) { S.tab = b.dataset.tab; Object.assign(S, VOLATILE); save(); render(); return; }
   const a = b.dataset.act, i = +b.dataset.i;
-  if (a === 'addLine') { (S.ref.scenarios[S.scen] = S.ref.scenarios[S.scen] || []).push({ code: S.ref.operations[0].code, nb: 1 }); }
+  if (a === 'chip') { const k = b.dataset.k; S.opts[k] = k === 'machine' ? (S.opts.machine === 'bareme' ? 'scenario' : 'bareme') : { fixe: 'productivite', productivite: 'tache', tache: 'fixe' }[S.opts.vendange]; }
+  else if (a === 'opt') S.opts[b.dataset.k] = b.dataset.v;
+  else if (a === 'cmp') { const v = b.dataset.v; S.opts.machine = v === 'scenario' ? 'scenario' : 'bareme'; S.opts.vendange = v === 'tache' ? 'tache' : 'fixe'; }
+  else if (a === 'fac') { S.famille = S.famille === b.dataset.v ? '' : b.dataset.v; render(); return; }
+  else if (a === 'sources') { S.sources = !S.sources; render(); return; }
+  else if (a === 'sansSource') { S.sansSource = !S.sansSource; render(); return; }
+  else if (a === 'sansPrix') { S.sansPrix = !S.sansPrix; S.intrTout = false; render(); return; }
+  else if (a === 'intrTout') { S.intrTout = true; render(); return; }
+  else if (a === 'print') { window.print(); return; }
+  else if (a === 'addLine') { (S.ref.scenarios[S.scen] = S.ref.scenarios[S.scen] || []).push({ code: S.ref.operations[0].code, nb: 1 }); }
   else if (a === 'delLine') S.ref.scenarios[S.scen].splice(i, 1);
   else if (a === 'copyScen') S.ref.scenarios[S.scen] = clone(S.ref.scenarios.SC_2 || []);
-  else if (a === 'addOp') { let n = 1; while (S.ref.operations.some(o => o.code === `NOUV_${n}`)) n++; S.ref.operations.unshift({ code: `NOUV_${n}`, famille: '', libelle: 'Nouvelle opération', mode: 'VE', org: 'Exploitation', codeMO: '', hMO: null, codeMach: '', intrant: '', qIntrant: null, presta: null, source: '' }); S.filtre = ''; }
+  else if (a === 'addOp') { let n = 1; while (S.ref.operations.some(o => o.code === `NOUV_${n}`)) n++; S.ref.operations.unshift({ code: `NOUV_${n}`, famille: '', libelle: 'Nouvelle opération', mode: 'VE', org: 'Exploitation', codeMO: '', hMO: null, codeMach: '', intrant: '', qIntrant: null, presta: null, source: '' }); Object.assign(S, VOLATILE); }
   else if (a === 'dupOp') { const c = clone(S.ref.operations[i]); let n = 2; while (S.ref.operations.some(o => o.code === `${c.code}_${n}`)) n++; c.code = `${c.code}_${n}`; delete c.role; S.ref.operations.splice(i + 1, 0, c); }
   else if (a === 'delOp') S.ref.operations.splice(i, 1);
   else if (a === 'reset') { if (b.dataset.armed) { S.ref = clone(FACTORY); S.opts = { ...DEFAULT_OPTS }; S.debit = { ...DEFAULT_DEBIT }; toast("Valeurs d'origine restaurées."); } else { b.dataset.armed = 1; b.textContent = 'Confirmer : tout effacer'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Revenir aux valeurs d'origine"; } }, 4000); return; } }
@@ -497,7 +879,19 @@ document.addEventListener('click', e => {
   else return;
   save(); render();
 });
-document.addEventListener('input', e => { if (e.target.dataset.act === 'filtre') { clearTimeout(window._ft); window._ft = setTimeout(() => { S.filtre = e.target.value; const pos = e.target.selectionStart; render(); const f = document.querySelector('.filtre'); if (f) { f.focus(); f.setSelectionRange(pos, pos); } }, 250); } });
+/* Retour immédiat : filtres et champs du débit de chantier, avec restitution du curseur. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t.dataset.filt) {
+    const k = t.dataset.filt, v = t.value, pos = t.selectionStart;
+    clearTimeout(window._ft);
+    window._ft = setTimeout(() => { S[k] = v; S.intrTout = false; render(); const f = document.querySelector(`[data-filt="${k}"]`); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (x) {} } }, 200);
+  } else if (t.dataset.path && t.dataset.path.slice(0, 6) === 'debit.') {
+    const p = t.dataset.path, v = t.value, pos = t.selectionStart;
+    clearTimeout(window._dt);
+    window._dt = setTimeout(() => { setPath(p, v); const f = document.querySelector(`[data-path="${p}"]`); if (f) { f.focus(); try { f.setSelectionRange(pos, pos); } catch (x) {} } }, 250);
+  }
+});
 
 /* ---------- fichiers ---------- */
 let dl = null, fallbackDl = !(window.claude && window.claude.use);
@@ -507,12 +901,12 @@ async function saveFile(name, data) {
   if (fallbackDl) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([data], { type: 'application/octet-stream' })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
 }
 function exportCsv() {
-  const res = Core.scenario(S.ref, S.opts, S.scen), n = v => fr(v, 2).replace(/\u202f|\u00a0/g, '');
+  const res = Core.scenario(S.ref, S.opts, S.scen), n = v => fr(v, 2).replace(/ | /g, '');
   const rows = [['Scénario', 'Code', 'Opération', 'Passages', '€/ha', 'MO €/ha', 'Matériel €/ha', 'Intrants €/ha', 'Prestations €/ha', 'h MO/ha', 'h traction/ha']];
   res.lines.forEach(l => rows.push([S.scen, l.code, l.op ? l.op.libelle : 'code inconnu', l.nb, n(l.total), n(l.mo), n(l.mach), n(l.intr), n(l.presta), n(l.h), n(l.hMach)]));
   const s = res.synth; rows.push([S.scen, 'TOTAL', '', '', n(s.cout), n(s.mo), n(s.mach), n(s.intr), n(s.presta), n(s.hMO), n(s.hMach)]);
   rows.push([], ['Méthode matériel', S.opts.machine], ['Méthode cueillette', S.opts.vendange], ['Rendement kg/ha', S.ref.params.volume], ['Référentiel', S.ref.version]);
-  saveFile(`couts_${S.scen}.csv`, '\ufeff' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n'));
+  saveFile(`couts_${S.scen}.csv`, '﻿' + rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n'));
 }
 function importJson(file) {
   if (!file) return;
